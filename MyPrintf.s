@@ -55,22 +55,31 @@ _MyPrintf:
 
 RdFrmtStrng:
 
-            mov  rbx, [r8 + rcx]                        ; rbx = symbol from format string
+            xor  rbx, rbx                               ; rbx = 0, register for symbols from format
+
+            mov  bl, [r8 + rcx]                         ; rbx = symbol from format string
             inc  rcx                                    ; rcx++
 
-            cmp  rbx, '%'                               ; if (rbx != '%') {
+            cmp  bl, '%'                                ; if (rbx != '%') {
             jne  NotSpecificator                        ; goto NotSpecificator }
                                                         ; else
+            push rdx                                    ; save rdx in stack
+            push rcx                                    ; save rcx in stack
+
             call ProcessSpecificator                    ; Process specificator next after '%';
 
+            pop  rcx                                    ; back rcx from stack
+            pop  rdx                                    ; back rdx from stack
+
+            inc  rcx                                    ; rcx++
+
+            jmp SpecificatorIsProccessed                ; goto SpecificatorIsProccessed
 
 NotSpecificator:
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
             inc  rdx                                    ; rdx++
 
-
-
-
+SpecificatorIsProccessed:
 
 ;-----------Check-condition-of-end-reading-format-string-------------------------------------------
             cmp  rcx, FormatLen                         ; if (rcx == FormatLen) {
@@ -109,30 +118,48 @@ EndRdFrmtStrng:
 ;           rcx = index of specificator   in format string
 ;           rdx = index of next free cell in buffer
 ; Exit:     rdx = index of next free cell in buffer (changed)
-; Destroy:  rbx, rdx
+; Destroy:  rbx, rsi, rax, rdi, rdx, rcx
 ;--------------------------------------------------------------------------------------------------
 ; need to process %(c,   s,   d,   x,   o,   b) and %%
 ; HEX               63h  73h  64h  78h  6Fh  62h
+
 ProcessSpecificator:
-            mov  rbx, [r8 + rcx]                        ; rbx = char of specificator
+            xor  rbx, rbx                               ; rbx = 0, register for symbols from format
+
+            mov  bl, [r8 + rcx]                         ; bl = char of specificator
 
 SwitchPrcssSpcfctr:
 ;-----------Count-index-for-cases------------------------------------------------------------------
 
-            sub  rbx, 60h                               ; rbx -= 60h to switch counter for cases
+            sub  bl, 60h                                ; rbx -= 60h to switch counter for cases
 
-            cmp  rbx, 18h                               ; if (rbx > 18h) {
-            ja   .case_def
+            cmp  bl, 18h                                ; if (rbx > 18h) {
+            ja   case_def
 
 ;-----------Switch---------------------------------------------------------------------------------
-            jmp *.JumpTable(,rbx, 8)
-.case_2:
-.case_3:
-.case_4:
-.case_F:
-.case_13:
-.case_18:
-.case_def:
+            xor  rsi, rsi                               ; rsi = 0, register to addr of case
+
+            movsxd rsi, [JumpTable + (rbx - 1) * 4]                   ; take address from jump table
+            jmp  rsi
+case_2:
+            call _Meow
+            ret
+case_3:
+
+            ret
+case_4:
+
+            ret
+case_F:
+
+            ret
+case_13:
+
+            ret
+case_18:
+
+            ret
+case_def:
 
             ret
 
@@ -158,52 +185,48 @@ WriteBuf:
 ; _Meow     my function write to console Meow
 ; Entry:    None
 ; Exit:     None
-; Destroy:  rax, rdi, rsi, rdx
+; Destroy:  rax, rdi, rsi, rdx, rcx
 ;--------------------------------------------------------------------------------------------------
 _Meow:
             mov rax, 0x01                               ; write64 (rdi, rsi, rdx) ... r10, r8, r9
             mov rdi, 1                                  ; stdout
             mov rsi, Msg
             mov rdx, MsgLen                             ; strlen (Msg)
-            syscall
+            syscall                                     ; destroy rcx :(
 
             ret
 
 ;--------------------------------------------------------------------------------------------------
-
-section     .rodata
-
-            .align  8                                   ; align of 8 address in table
-
-.JumpTable:
-            .quad .case_2                               ; case 2  (%b)
-            .quad .case_3                               ; case 3  (%c)
-            .quad .case_4                               ; case 4  (%d)
-            .quad .case_def                             ; case 5  default
-            .quad .case_def                             ; case 6  default
-            .quad .case_def                             ; case 7  default
-            .quad .case_def                             ; case 8  default
-            .quad .case_def                             ; case 9  default
-            .quad .case_def                             ; case A  default
-            .quad .case_def                             ; case B  default
-            .quad .case_def                             ; case C  default
-            .quad .case_def                             ; case D  default
-            .quad .case_def                             ; case E  default
-            .quad .case_F                               ; case F  (%o)
-            .quad .case_def                             ; case 10 default
-            .quad .case_def                             ; case 11 default
-            .quad .case_def                             ; case 12 default
-            .quad .case_13                              ; case 13 (%s)
-            .quad .case_def                             ; case 14 default
-            .quad .case_def                             ; case 15 default
-            .quad .case_def                             ; case 16 default
-            .quad .case_def                             ; case 17 default
-            .quad .case_18                              ; case 18 (%x)
-            .quad .case_def                             ; case    default
-
 section     .data
+            align  8                                 ; align of 8 address in table
+JumpTable:
+            dd case_def                              ; case 1  default
+            dd case_2                                ; case 2  (%b)
+            dd case_3                                ; case 3  (%c)
+            dd case_4                                ; case 4  (%d)
+            dd case_def                              ; case 5  default
+            dd case_def                              ; case 6  default
+            dd case_def                              ; case 7  default
+            dd case_def                              ; case 8  default
+            dd case_def                              ; case 9  default
+            dd case_def                              ; case A  default
+            dd case_def                              ; case B  default
+            dd case_def                              ; case C  default
+            dd case_def                              ; case D  default
+            dd case_def                              ; case E  default
+            dd case_F                                ; case F  (%o)
+            dd case_def                              ; case 10 default
+            dd case_def                              ; case 11 default
+            dd case_def                              ; case 12 default
+            dd case_13                               ; case 13 (%s)
+            dd case_def                              ; case 14 default
+            dd case_def                              ; case 15 default
+            dd case_def                              ; case 16 default
+            dd case_def                              ; case 17 default
+            dd case_18                               ; case 18 (%x)
+            dd case_def                              ; case    default
 
-Format:     db "dMeowMeowMeowGGG", 0x0a
+Format:     db "d%bMeowMeowMeowGGG", 0x0a
 
 FormatLen:  equ $ - Format
 
