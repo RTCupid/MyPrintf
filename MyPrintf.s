@@ -111,10 +111,28 @@ EndRdFrmtStrng:
 ; Exit:     rdx = index of next free cell in buffer (changed)
 ; Destroy:  rbx, rdx
 ;--------------------------------------------------------------------------------------------------
+; need to process %(c,   s,   d,   x,   o,   b) and %%
+; HEX               63h  73h  64h  78h  6Fh  62h
 ProcessSpecificator:
             mov  rbx, [r8 + rcx]                        ; rbx = char of specificator
 
+SwitchPrcssSpcfctr:
+;-----------Count-index-for-cases------------------------------------------------------------------
 
+            sub  rbx, 60h                               ; rbx -= 60h to switch counter for cases
+
+            cmp  rbx, 18h                               ; if (rbx > 18h) {
+            ja   .case_def
+
+;-----------Switch---------------------------------------------------------------------------------
+            jmp *.JumpTable(,rbx, 8)
+.case_2:
+.case_3:
+.case_4:
+.case_F:
+.case_13:
+.case_18:
+.case_def:
 
             ret
 
@@ -152,6 +170,36 @@ _Meow:
             ret
 
 ;--------------------------------------------------------------------------------------------------
+
+section     .rodata
+
+            .align  8                                   ; align of 8 address in table
+
+.JumpTable:
+            .quad .case_2                               ; case 2  (%b)
+            .quad .case_3                               ; case 3  (%c)
+            .quad .case_4                               ; case 4  (%d)
+            .quad .case_def                             ; case 5  default
+            .quad .case_def                             ; case 6  default
+            .quad .case_def                             ; case 7  default
+            .quad .case_def                             ; case 8  default
+            .quad .case_def                             ; case 9  default
+            .quad .case_def                             ; case A  default
+            .quad .case_def                             ; case B  default
+            .quad .case_def                             ; case C  default
+            .quad .case_def                             ; case D  default
+            .quad .case_def                             ; case E  default
+            .quad .case_F                               ; case F  (%o)
+            .quad .case_def                             ; case 10 default
+            .quad .case_def                             ; case 11 default
+            .quad .case_def                             ; case 12 default
+            .quad .case_13                              ; case 13 (%s)
+            .quad .case_def                             ; case 14 default
+            .quad .case_def                             ; case 15 default
+            .quad .case_def                             ; case 16 default
+            .quad .case_def                             ; case 17 default
+            .quad .case_18                              ; case 18 (%x)
+            .quad .case_def                             ; case    default
 
 section     .data
 
