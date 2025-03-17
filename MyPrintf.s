@@ -53,9 +53,6 @@ _MyPrintf:
                                                         ;   that was read from format string
             xor  rdx, rdx                               ; rdx = 0, rdx = counter symbols
                                                         ;   that was write to buffer of printf
-            mov  rax, 0x01                              ; write64 (rdi, rsi, rdx)
-            mov  rdi, 1                                 ; stdout
-
 ;-----------Start-of-Read-Format-String------------------------------------------------------------
 
 RdFrmtStrng:
@@ -70,14 +67,34 @@ RdFrmtStrng:
             je   EndRdFrmtStrng                         ;   goto EndRdFrmtStrng }
 ;-----------End-Check------------------------------------------------------------------------------
 
-            mov  rsi, Buffer                            ; pop addr of format string
-
             jmp RdFrmtStrng                             ; goto RdFrmtStrng
 
 ;-----------End-of-Read-Format-String--------------------------------------------------------------
 
 EndRdFrmtStrng:
+                                                        ;------------------------------------
+            mov  rsi, Buffer                            ; rsi = addr of buffer              |
+                                                        ; rdx = number of symbols to write  |
+                                                        ;------------------------------------
+            call WriteBuf                               ; func to write symbols from buffer
+                                                        ; to console and clear buffer
+            ret
+
+;--------------------------------------------------------------------------------------------------
+; WriteBuf  function for write to console buffer
+; Entry:    rsi = Buffer
+;           rdx = number of symbols to write
+; Exit:     rsi = Buffer
+;           rdx = 0
+; Destroy:  rax, rdx, rdi
+;--------------------------------------------------------------------------------------------------
+WriteBuf:
+            mov  rax, 0x01                              ; write64 (rdi, rsi, rdx)
+            mov  rdi, 1                                 ; stdout
+
             syscall
+
+            xor  rdx, rdx                               ; rdx = 0, to "clear" buffer
 
             ret
 
