@@ -56,15 +56,21 @@ _MyPrintf:
             mov  rax, 0x01                              ; write64 (rdi, rsi, rdx)
             mov  rdi, 1                                 ; stdout
 
+RdFrmtStrng:
+
             mov  rbx, [Format + rcx]                    ; rbx = symbol from format string
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
             inc  rcx                                    ; rcx++
             inc  rdx                                    ; rdx++
 
+            cmp  rcx, FormatLen                         ; if (rcx == FormatLen) {
+            je   EndRdFrmtStrng                         ; goto EndRdFrmtStrng }
             ;mov  rdx, 3
             mov  rsi, Buffer                            ; pop addr of format string
             ;mov  rdx, FormatLen                         ; len of format string
+            jmp RdFrmtStrng                             ; goto RdFrmtStrng
 
+EndRdFrmtStrng:
             syscall
 
             ret
@@ -73,7 +79,7 @@ _MyPrintf:
 
 section     .data
 
-Format:     db "%d", 0x0a
+Format:     db "%dMeowMeowMeow%GGG", 0x0a
 
 FormatLen:  equ $ - Format
 
