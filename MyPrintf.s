@@ -50,11 +50,13 @@ _Meow:
 ;--------------------------------------------------------------------------------------------------
 _MyPrintf:
             xor  rcx, rcx                               ; rcx = 0, rcx = counter symbols
-                                                        ; that was read from format string
+                                                        ;   that was read from format string
             xor  rdx, rdx                               ; rdx = 0, rdx = counter symbols
-                                                        ; that was write to buffer of printf
+                                                        ;   that was write to buffer of printf
             mov  rax, 0x01                              ; write64 (rdi, rsi, rdx)
             mov  rdi, 1                                 ; stdout
+
+;-----------Start-of-Read-Format-String------------------------------------------------------------
 
 RdFrmtStrng:
 
@@ -63,12 +65,16 @@ RdFrmtStrng:
             inc  rcx                                    ; rcx++
             inc  rdx                                    ; rdx++
 
+;-----------Check-condition-of-end-reading-format-string-------------------------------------------
             cmp  rcx, FormatLen                         ; if (rcx == FormatLen) {
-            je   EndRdFrmtStrng                         ; goto EndRdFrmtStrng }
-            ;mov  rdx, 3
+            je   EndRdFrmtStrng                         ;   goto EndRdFrmtStrng }
+;-----------End-Check------------------------------------------------------------------------------
+
             mov  rsi, Buffer                            ; pop addr of format string
-            ;mov  rdx, FormatLen                         ; len of format string
+
             jmp RdFrmtStrng                             ; goto RdFrmtStrng
+
+;-----------End-of-Read-Format-String--------------------------------------------------------------
 
 EndRdFrmtStrng:
             syscall
