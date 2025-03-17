@@ -28,12 +28,19 @@ _start:
 ;--------------------------------------------------------------------------------------------------
 ;           Exit from program
 ;--------------------------------------------------------------------------------------------------
-;
+
 ;--------------------------------------------------------------------------------------------------
 ; _MyPrintf my function printf version 11.1, write to console string
-;           with some arguments that pinned by '%'
-; Entry:    head = format string
-;           parametres in stack (type "cdecl")
+;               with some arguments that pinned by '%'
+; Entry:    STACK (cdecl)                       ---------
+;           ...                                         |
+;           ...                                         |
+;           ...                                         |
+;           arg2                      ...               |
+;           arg1                      <-- rsp + 16      |
+;           Format string             <-- rsp + 8       |
+;           return address to main    <-- rsp           |
+;                                               ---------
 ; Exit:     None
 ; Destroy:  rax, rbx, rdx, rdi, rsi, rcx
 ;--------------------------------------------------------------------------------------------------
@@ -44,8 +51,7 @@ _MyPrintf:
                                                         ;   that was write to buffer of printf
 ;-----------Start-of-Read-Format-String------------------------------------------------------------
 
-            pop  r8                                     ; r8 = format string
-            ;mov  r8, Format
+            mov  r8, 8[rsp]                             ; r8 = format string from stack
 
 RdFrmtStrng:
 
@@ -65,16 +71,19 @@ NotSpecificator:
 
 
 
+
 ;-----------Check-condition-of-end-reading-format-string-------------------------------------------
             cmp  rcx, FormatLen                         ; if (rcx == FormatLen) {
             je   EndRdFrmtStrng                         ;   goto EndRdFrmtStrng }
+;-----------End-check------------------------------------------------------------------------------
+
 ;-----------Check-Buffer-Overflow------------------------------------------------------------------
             cmp  rdx, 64                                ; hardcode, 64 - magic circles len of buff
                                                         ; if (rdx != 64) {
             jb   NoOverflowBuffer                       ;   goto NoOverflowBuffer  }
             call WriteBuf                               ; write symbols from buffer
                                                         ;   to console and clear buffer
-
+;-----------End-check------------------------------------------------------------------------------
 
 
 
@@ -96,14 +105,14 @@ EndRdFrmtStrng:
 
 ;--------------------------------------------------------------------------------------------------
 ; ProcessSpecificator function to check and process the specificator
-; Entry:    rsi = Buffer
-;           rcx = index of specificator in format string
-; Exit:     rsi = Buffer
-;           rdx = 0
-; Destroy:  rax, rdx, rdi
+; Entry:    r8  = Format string
+;           rcx = index of specificator   in format string
+;           rdx = index of next free cell in buffer
+; Exit:     rdx = index of next free cell in buffer (changed)
+; Destroy:  rbx, rdx
 ;--------------------------------------------------------------------------------------------------
 ProcessSpecificator:
-            mov  rbx, [Format + rcx]                    ; rbx = symbol from format string
+            mov  rbx, [r8 + rcx]                        ; rbx = char of specificator
 
 
 
