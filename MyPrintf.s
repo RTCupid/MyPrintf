@@ -16,7 +16,7 @@ _start:
 
 ;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
 
-            ;push Format                                ; push format string as first arguments
+            push Format                                ; push format string as first arguments
 
 ;-----------End--Arguments-of-My-Printf------------------------------------------------------------
 
@@ -32,7 +32,7 @@ _start:
 ;--------------------------------------------------------------------------------------------------
 ; _MyPrintf my function printf version 11.1, write to console string
 ;           with some arguments that pinned by '%'
-; Entry:    addr of format string
+; Entry:    head = format string
 ;           parametres in stack (type "cdecl")
 ; Exit:     None
 ; Destroy:  rax, rbx, rdx, rdi, rsi, rcx
@@ -44,12 +44,26 @@ _MyPrintf:
                                                         ;   that was write to buffer of printf
 ;-----------Start-of-Read-Format-String------------------------------------------------------------
 
+            pop  r8                                     ; r8 = format string
+            ;mov  r8, Format
+
 RdFrmtStrng:
 
-            mov  rbx, [Format + rcx]                    ; rbx = symbol from format string
-            mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
+            mov  rbx, [r8 + rcx]                        ; rbx = symbol from format string
             inc  rcx                                    ; rcx++
+
+            cmp  rbx, '%'                               ; if (rbx != '%') {
+            jne  NotSpecificator                        ; goto NotSpecificator }
+                                                        ; else
+            call ProcessSpecificator                    ; Process specificator next after '%';
+
+
+NotSpecificator:
+            mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
             inc  rdx                                    ; rdx++
+
+
+
 
 ;-----------Check-condition-of-end-reading-format-string-------------------------------------------
             cmp  rcx, FormatLen                         ; if (rcx == FormatLen) {
@@ -60,6 +74,11 @@ RdFrmtStrng:
             jb   NoOverflowBuffer                       ;   goto NoOverflowBuffer  }
             call WriteBuf                               ; write symbols from buffer
                                                         ;   to console and clear buffer
+
+
+
+
+
 NoOverflowBuffer:
 
             jmp RdFrmtStrng                             ; goto RdFrmtStrng
@@ -76,7 +95,22 @@ EndRdFrmtStrng:
             ret
 
 ;--------------------------------------------------------------------------------------------------
-; WriteBuf  function for write to console buffer
+; ProcessSpecificator function to check and process the specificator
+; Entry:    rsi = Buffer
+;           rcx = index of specificator in format string
+; Exit:     rsi = Buffer
+;           rdx = 0
+; Destroy:  rax, rdx, rdi
+;--------------------------------------------------------------------------------------------------
+ProcessSpecificator:
+            mov  rbx, [Format + rcx]                    ; rbx = symbol from format string
+
+
+
+            ret
+
+;--------------------------------------------------------------------------------------------------
+; WriteBuf  function to write to console buffer
 ; Entry:    rsi = Buffer
 ;           rdx = number of symbols to write
 ; Exit:     rsi = Buffer
@@ -112,7 +146,7 @@ _Meow:
 
 section     .data
 
-Format:     db "%dMeowMeowMeow%GGG", 0x0a
+Format:     db "dMeowMeowMeowGGG", 0x0a
 
 FormatLen:  equ $ - Format
 
