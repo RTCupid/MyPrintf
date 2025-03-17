@@ -27,20 +27,6 @@ _start:
             syscall
 
 ;--------------------------------------------------------------------------------------------------
-; _Meow     my function write to console Meow
-; Entry:    None
-; Exit:     None
-; Destroy:  rax, rdi, rsi, rdx
-;--------------------------------------------------------------------------------------------------
-_Meow:
-            mov rax, 0x01                               ; write64 (rdi, rsi, rdx) ... r10, r8, r9
-            mov rdi, 1                                  ; stdout
-            mov rsi, Msg
-            mov rdx, MsgLen                             ; strlen (Msg)
-            syscall
-
-            ret
-;--------------------------------------------------------------------------------------------------
 ; _MyPrintf my function printf version 11.1, write to console string
 ;           with some arguments that pinned by '%'
 ; Entry:    addr of format string
@@ -95,6 +81,21 @@ WriteBuf:
             syscall
 
             xor  rdx, rdx                               ; rdx = 0, to "clear" buffer
+
+            ret
+
+;--------------------------------------------------------------------------------------------------
+; _Meow     my function write to console Meow
+; Entry:    None
+; Exit:     None
+; Destroy:  rax, rdi, rsi, rdx
+;--------------------------------------------------------------------------------------------------
+_Meow:
+            mov rax, 0x01                               ; write64 (rdi, rsi, rdx) ... r10, r8, r9
+            mov rdi, 1                                  ; stdout
+            mov rsi, Msg
+            mov rdx, MsgLen                             ; strlen (Msg)
+            syscall
 
             ret
 
