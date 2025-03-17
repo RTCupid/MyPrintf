@@ -1,7 +1,7 @@
-;------------------------------------------------------------------------------
+;--------------------------------------------------------------------------------------------------
 ;                                  MyPrintf
 ;                         (c) 2025 Muratov Artyom
-;------------------------------------------------------------------------------
+;--------------------------------------------------------------------------------------------------
 ; Compilation with:                     Flags:
 ; nasm -f elf64 -l 1-nasm.lst 1-nasm.s  -w+orphan-labels
 ; Linker:
@@ -9,43 +9,63 @@
 
 section     .text
 
-global _start                  ; predefined entry point name for linker
+global _start                                               ; predefine entry point name for linker
 
-_start:     call _Meow
+_start:
+            call _Meow                                      ; write "MeowMeowMeow" to consol
 
-            mov rax, 0x3C      ; exit64 (rdi)
+;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
+
+            ;push Format                                     ; push format string as first arguments
+
+;-----------End--Arguments-of-My-Printf------------------------------------------------------------
+
+            call _MyPrintf                                  ; call my function of printf
+
+            mov rax, 0x3C                                   ; exit64 (rdi)
             xor rdi, rdi
             syscall
 
-;------------------------------------------------------------------------------
-; Meow      my function write to console Meow
+;--------------------------------------------------------------------------------------------------
+; _Meow     my function write to console Meow
 ; Entry:    None
 ; Exit:     None
 ; Destroy:  rax, rdi, rsi, rdx
-;------------------------------------------------------------------------------
-
+;--------------------------------------------------------------------------------------------------
 _Meow:
-            mov rax, 0x01      ; write64 (rdi, rsi, rdx) ... r10, r8, r9
-            mov rdi, 1         ; stdout
+            mov rax, 0x01                                   ; write64 (rdi, rsi, rdx) ... r10, r8, r9
+            mov rdi, 1                                      ; stdout
             mov rsi, Msg
-            mov rdx, MsgLen    ; strlen (Msg)
+            mov rdx, MsgLen                                 ; strlen (Msg)
             syscall
 
             ret
-;------------------------------------------------------------------------------
-; MyPrintf  my function printf version 11.1, write to console string
+;--------------------------------------------------------------------------------------------------
+; _MyPrintf my function printf version 11.1, write to console string
 ;           with some arguments that pinned by '%'
-; Entry:    parametres in stack (type "cdecl")
+; Entry:    addr of format string
+;           parametres in stack (type "cdecl")
 ; Exit:
 ; Destroy:
-;------------------------------------------------------------------------------
-;MyPrintf    proc
+;--------------------------------------------------------------------------------------------------
+_MyPrintf:
+            mov  rax, 0x01                                  ; write64 (rdi, rsi, rdx)
+            mov  rdi, 1                                     ; stdout
+            mov  rsi, Format                                ; pop addr of format string
+            mov  rdx, FormatLen                             ; len of format string
+            syscall
 
+            ret
 
-;            ret
-;MyPrintf    endp
+;--------------------------------------------------------------------------------------------------
 
 section     .data
+
+Format:     db "%d", 0x0a
+
+FormatLen:  equ $ - Format
+
+Buffer:     TIMES 64 db 0
 
 Msg:        db "MeowMeowMeow", 0x0a
 MsgLen      equ $ - Msg
