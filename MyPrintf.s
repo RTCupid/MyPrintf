@@ -25,6 +25,9 @@ _start:
             mov rax, 0x3C                               ; exit64 (rdi)
             xor rdi, rdi
             syscall
+;--------------------------------------------------------------------------------------------------
+;           Exit from program
+;--------------------------------------------------------------------------------------------------
 
 ;--------------------------------------------------------------------------------------------------
 ; _MyPrintf my function printf version 11.1, write to console string
@@ -51,7 +54,13 @@ RdFrmtStrng:
 ;-----------Check-condition-of-end-reading-format-string-------------------------------------------
             cmp  rcx, FormatLen                         ; if (rcx == FormatLen) {
             je   EndRdFrmtStrng                         ;   goto EndRdFrmtStrng }
-;-----------End-Check------------------------------------------------------------------------------
+;-----------Check-Buffer-Overflow------------------------------------------------------------------
+            cmp  rdx, 64                                ; hardcode, 64 - magic circles len of buff
+                                                        ; if (rdx != 64) {
+            jb   NoOverflowBuffer                       ;   goto NoOverflowBuffer  }
+            call WriteBuf                               ; write symbols from buffer
+                                                        ;   to console and clear buffer
+NoOverflowBuffer:
 
             jmp RdFrmtStrng                             ; goto RdFrmtStrng
 
@@ -63,7 +72,7 @@ EndRdFrmtStrng:
                                                         ; rdx = number of symbols to write  |
                                                         ;------------------------------------
             call WriteBuf                               ; func to write symbols from buffer
-                                                        ; to console and clear buffer
+                                                        ;   to console and clear buffer
             ret
 
 ;--------------------------------------------------------------------------------------------------
