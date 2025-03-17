@@ -32,15 +32,15 @@ _start:
 ;--------------------------------------------------------------------------------------------------
 ; _MyPrintf my function printf version 11.1, write to console string
 ;               with some arguments that pinned by '%'
-; Entry:    STACK (cdecl)                       ---------
-;           ...                                         |
-;           ...                                         |
-;           ...                                         |
-;           arg2                      ...               |
-;           arg1                      <-- rsp + 16      |
-;           Format string             <-- rsp + 8       |
-;           return address to main    <-- rsp           |
-;                                               ---------
+; Entry:  --STACK (cdecl)--------------------------------
+;         | ...                                         |
+;         | ...                                         |
+;         | ...                                         |
+;         | arg2                      ...               |
+;         | arg1                      <-- rsp + 16      |
+;         | Format string             <-- rsp + 8       |
+;         | return address to main    <-- rsp           |
+;         -----------------------------------------------
 ; Exit:     None
 ; Destroy:  rax, rbx, rdx, rdi, rsi, rcx
 ;--------------------------------------------------------------------------------------------------
@@ -94,9 +94,6 @@ SpecificatorIsProccessed:
                                                         ;   to console and clear buffer
 ;-----------End-check------------------------------------------------------------------------------
 
-
-
-
 NoOverflowBuffer:
 
             jmp RdFrmtStrng                             ; goto RdFrmtStrng
@@ -139,27 +136,27 @@ SwitchPrcssSpcfctr:
 ;-----------Switch---------------------------------------------------------------------------------
             xor  rsi, rsi                               ; rsi = 0, register to addr of case
 
-            movsxd rsi, [JumpTable + (rbx - 1) * 4]                   ; take address from jump table
+            movsxd rsi, [JumpTable + (rbx - 1) * 4]     ; take address from jump table
             jmp  rsi
-case_2:
+case_2:                                                 ; handler %b
             call _Meow
             ret
-case_3:
+case_3:                                                 ; handler %c
 
             ret
-case_4:
+case_4:                                                 ; handler %d
 
             ret
-case_F:
+case_F:                                                 ; handler %o
 
             ret
-case_13:
+case_13:                                                ; handler %s
 
             ret
-case_18:
+case_18:                                                ; handler %x
 
             ret
-case_def:
+case_def:                                               ; default handler
 
             ret
 
