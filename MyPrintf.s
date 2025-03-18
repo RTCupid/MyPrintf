@@ -131,6 +131,9 @@ ProcessSpecificator:
 
             mov  bl, [r8 + rcx]                         ; bl = char of specificator
 
+            cmp  bl, '%'
+            je   Percnt
+
 SwitchPrcssSpcfctr:
 ;-----------Count-index-for-cases------------------------------------------------------------------
 
@@ -172,6 +175,12 @@ case_18:                                                ; handler %x
 
             ret
 case_def:                                               ; default handler
+
+            ret
+Percnt:
+            mov  rbx, '%'                               ; rbx = '%'
+            mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
+            inc  rdx                                    ; rdx++
 
             ret
 
@@ -238,7 +247,7 @@ JumpTable:
             dd case_18                               ; case 18 (%x)
             dd case_def                              ; case    default
 
-Format:     db "d%cMeowMeowMeowGGG", 0x0a
+Format:     db "d%cMeowMeowMeo%%wGGG", 0x0a
 
 FormatLen:  equ $ - Format
 
