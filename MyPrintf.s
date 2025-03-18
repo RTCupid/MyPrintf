@@ -16,6 +16,7 @@ _start:
 
 ;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
 
+            push 'A'                                   ; first argument
             push Format                                ; push format string as first arguments
 
 ;-----------End--Arguments-of-My-Printf------------------------------------------------------------
@@ -63,13 +64,8 @@ RdFrmtStrng:
             cmp  bl, '%'                                ; if (rbx != '%') {
             jne  NotSpecificator                        ; goto NotSpecificator }
                                                         ; else
-            push rdx                                    ; save rdx in stack
-            push rcx                                    ; save rcx in stack
 
             call ProcessSpecificator                    ; Process specificator next after '%';
-
-            pop  rcx                                    ; back rcx from stack
-            pop  rdx                                    ; back rdx from stack
 
             inc  rcx                                    ; rcx++
 
@@ -114,8 +110,18 @@ EndRdFrmtStrng:
 ; Entry:    r8  = Format string
 ;           rcx = index of specificator   in format string
 ;           rdx = index of next free cell in buffer
+;         --STACK (cdecl)--------------------------------
+;         | ...                                         |
+;         | ...                                         |
+;         | ...                                         |
+;         | arg2                        ...             |
+;         | arg1                        <-- rsp + 24    |
+;         | Format string               <-- rsp + 16    |
+;         | return address to main      <-- rsp + 8     |
+;         | return address to _MyPrintf <-- rsp         |
+;         -----------------------------------------------
 ; Exit:     rdx = index of next free cell in buffer (changed)
-; Destroy:  rbx, rsi, rax, rdi, rdx, rcx
+; Destroy:  rbx, rsi, rax, rdi
 ;--------------------------------------------------------------------------------------------------
 ; need to process %(c,   s,   d,   x,   o,   b) and %%
 ; HEX               63h  73h  64h  78h  6Fh  62h
@@ -139,9 +145,18 @@ SwitchPrcssSpcfctr:
             movsxd rsi, [JumpTable + (rbx - 1) * 4]     ; take address from jump table
             jmp  rsi
 case_2:                                                 ; handler %b
+            push rdx                                    ; save rdx in stack
+            push rcx                                    ; save rcx in stack
+
             call _Meow
+
+            pop  rcx                                    ; back rcx from stack
+            pop  rdx                                    ; back rdx from stack
             ret
 case_3:                                                 ; handler %c
+            mov  rbx, 24[rsp]                           ; rbx = some argument from stack
+            mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
+            inc  rdx                                    ; rdx++
 
             ret
 case_4:                                                 ; handler %d
@@ -223,7 +238,7 @@ JumpTable:
             dd case_18                               ; case 18 (%x)
             dd case_def                              ; case    default
 
-Format:     db "d%bMeowMeowMeowGGG", 0x0a
+Format:     db "d%cMeowMeowMeowGGG", 0x0a
 
 FormatLen:  equ $ - Format
 
