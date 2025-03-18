@@ -16,8 +16,9 @@ _start:
 
 ;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
 
-            push 'A'                                   ; first argument
-            push Format                                ; push format string as first arguments
+            push 'B'                                    ; second argument
+            push 'A'                                    ; first  argument
+            push Format                                 ; push format string as first arguments
 
 ;-----------End--Arguments-of-My-Printf------------------------------------------------------------
 
@@ -50,6 +51,7 @@ _MyPrintf:
                                                         ;   that was read from format string
             xor  rdx, rdx                               ; rdx = 0, rdx = counter symbols
                                                         ;   that was write to buffer of printf
+            xor  r9,  r9                                ; r9  = 0, r9  = counter arguments
 ;-----------Start-of-Read-Format-String------------------------------------------------------------
 
             mov  r8, 8[rsp]                             ; r8 = format string from stack
@@ -110,6 +112,7 @@ EndRdFrmtStrng:
 ; Entry:    r8  = Format string
 ;           rcx = index of specificator   in format string
 ;           rdx = index of next free cell in buffer
+;           r9  = counter arguments
 ;         --STACK (cdecl)--------------------------------
 ;         | ...                                         |
 ;         | ...                                         |
@@ -131,8 +134,8 @@ ProcessSpecificator:
 
             mov  bl, [r8 + rcx]                         ; bl = char of specificator
 
-            cmp  bl, '%'
-            je   Percnt
+            cmp  bl, '%'                                ; if (bl == '%') {
+            je   Percnt                                 ; goto Percnt }
 
 SwitchPrcssSpcfctr:
 ;-----------Count-index-for-cases------------------------------------------------------------------
@@ -157,9 +160,10 @@ case_2:                                                 ; handler %b
             pop  rdx                                    ; back rdx from stack
             ret
 case_3:                                                 ; handler %c
-            mov  rbx, 24[rsp]                           ; rbx = some argument from stack
+            mov  rbx, [rsp + 24 + 8 * r9]               ; rbx = some argument from stack
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
             inc  rdx                                    ; rdx++
+            inc  r9                                     ; r9++ <=> next argument
 
             ret
 case_4:                                                 ; handler %d
@@ -247,7 +251,7 @@ JumpTable:
             dd case_18                               ; case 18 (%x)
             dd case_def                              ; case    default
 
-Format:     db "d%cMeowMeowMeo%%wGGG", 0x0a
+Format:     db "d%cMeowMeo%bw%cMeo%%wGGG", 0x0a
 
 FormatLen:  equ $ - Format
 
