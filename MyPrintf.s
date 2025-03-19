@@ -5,11 +5,13 @@
 ; Compilation with:                     Flags:
 ; nasm -f elf64 -l 1-nasm.lst 1-nasm.s  -w+orphan-labels
 ; Linker:
-; ld -s -o 1-nasm 1-nasm.o
+; ld -s -o 1-nasm 1-nasm.o -lc /lib64/ld-linux-x86-64.so.2
 
 section     .text
 
-global _start                                           ; predefine entry point name for linker
+global      _start                                      ; predefine entry point name for linker
+
+extern strlen
 
 _start:
             call _Meow                                  ; write "MeowMeowMeow" to consol
@@ -64,20 +66,20 @@ RdFrmtStrng:
             inc  rcx                                    ; rcx++
 
             cmp  bl, '%'                                ; if (rbx != '%') {
-            jne  NotSpecificator                        ; goto NotSpecificator }
+            jne  NotSpecifier                        ; goto NotSpecifier }
                                                         ; else
 
-            call ProcessSpecificator                    ; Process specificator next after '%';
+            call ProcessSpecifier                    ; Process specifier next after '%';
 
             inc  rcx                                    ; rcx++
 
-            jmp SpecificatorIsProccessed                ; goto SpecificatorIsProccessed
+            jmp SpecifierIsProccessed                ; goto SpecifierIsProccessed
 
-NotSpecificator:
+NotSpecifier:
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
             inc  rdx                                    ; rdx++
 
-SpecificatorIsProccessed:
+SpecifierIsProccessed:
 
 ;-----------Check-condition-of-end-reading-format-string-------------------------------------------
             cmp  rcx, FormatLen                         ; if (rcx == FormatLen) {
@@ -108,9 +110,9 @@ EndRdFrmtStrng:
             ret
 
 ;--------------------------------------------------------------------------------------------------
-; ProcessSpecificator function to check and process the specificator
+; ProcessSpecifier function to check and process the specifier
 ; Entry:    r8  = Format string
-;           rcx = index of specificator   in format string
+;           rcx = index of specifier   in format string
 ;           rdx = index of next free cell in buffer
 ;           r9  = counter arguments
 ;         --STACK (cdecl)--------------------------------
@@ -124,20 +126,20 @@ EndRdFrmtStrng:
 ;         | return address to _MyPrintf <-- rsp         |
 ;         -----------------------------------------------
 ; Exit:     rdx = index of next free cell in buffer (changed)
-; Destroy:  rbx, rsi, rax, rdi
+; Destroy:  rbx, rsi, rax, rdi, r9, rdx, r10
 ;--------------------------------------------------------------------------------------------------
 ; need to process %(c,   s,   d,   x,   o,   b) and %%
 ; HEX               63h  73h  64h  78h  6Fh  62h
 
-ProcessSpecificator:
+ProcessSpecifier:
             xor  rbx, rbx                               ; rbx = 0, register for symbols from format
 
-            mov  bl, [r8 + rcx]                         ; bl = char of specificator
+            mov  bl, [r8 + rcx]                         ; bl = char of specifier
 
             cmp  bl, '%'                                ; if (bl == '%') {
             je   Percnt                                 ; goto Percnt }
 
-SwitchPrcssSpcfctr:
+SwitchPrcssSpcfr:
 ;-----------Count-index-for-cases------------------------------------------------------------------
 
             sub  bl, 60h                                ; rbx -= 60h to switch counter for cases
@@ -150,15 +152,24 @@ SwitchPrcssSpcfctr:
 
             movsxd rsi, [JumpTable + (rbx - 1) * 4]     ; take address from jump table
             jmp  rsi
+
+;-----------Numbers-handlers-----------------------------------------------------------------------
 case_2:                                                 ; handler %b
-            push rdx                                    ; save rdx in stack
-            push rcx                                    ; save rcx in stack
 
-            call _Meow
 
-            pop  rcx                                    ; back rcx from stack
-            pop  rdx                                    ; back rdx from stack
             ret
+
+case_4:                                                 ; handler %d
+
+
+            ret
+case_F:                                                 ; handler %o
+
+            ret
+case_18:                                                ; handler %x
+
+            ret
+;-----------Symbol-Handler-------------------------------------------------------------------------
 case_3:                                                 ; handler %c
             mov  rbx, [rsp + 24 + 8 * r9]               ; rbx = some argument from stack
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
@@ -166,16 +177,16 @@ case_3:                                                 ; handler %c
             inc  r9                                     ; r9++ <=> next argument
 
             ret
-case_4:                                                 ; handler %d
-
-            ret
-case_F:                                                 ; handler %o
-
-            ret
+;-----------String-Handler-------------------------------------------------------------------------
 case_13:                                                ; handler %s
+            mov  rbx, [rsp + 24 + 8 * r9]               ; rbx = string argument from stack
+            mov  rdi, rbx                               ; rdi = rbx
+            call strlen                                 ; rax = len of string
 
-            ret
-case_18:                                                ; handler %x
+            ;mov  r10, rax                               ; r10 = rax, save len of string
+            cmp  rax, BufferLen
+
+;-----------some-variants-of-output-this-string----------------------------------------------------
 
             ret
 case_def:                                               ; default handler
@@ -251,11 +262,15 @@ JumpTable:
             dd case_18                               ; case 18 (%x)
             dd case_def                              ; case    default
 
+UnknownSpecifier:
+
+
 Format:     db "d%cMeowMeo%bw%cMeo%%wGGG", 0x0a
 
 FormatLen:  equ $ - Format
 
 Buffer:     TIMES 64 db 0
+BufferLen:  equ 64
 
-Msg:        db "MeowMeowMeow", 0x0a
+Msg:        db "Meow", 0x0a
 MsgLen      equ $ - Msg
