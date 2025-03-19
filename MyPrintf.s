@@ -69,14 +69,13 @@ RdFrmtStrng:
             inc  rcx                                    ; rcx++
 
             cmp  bl, '%'                                ; if (rbx != '%') {
-            jne  NotSpecifier                        ; goto NotSpecifier }
+            jne  NotSpecifier                           ;     goto NotSpecifier }
                                                         ; else
-
-            call ProcessSpecifier                    ; Process specifier next after '%';
+            call ProcessSpecifier                       ;     Process specifier next after '%';
 
             inc  rcx                                    ; rcx++
 
-            jmp SpecifierIsProccessed                ; goto SpecifierIsProccessed
+            jmp SpecifierIsProccessed                   ; goto SpecifierIsProccessed
 
 NotSpecifier:
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
@@ -148,7 +147,7 @@ SwitchPrcssSpcfr:
             sub  bl, 60h                                ; rbx -= 60h to switch counter for cases
 
             cmp  bl, 18h                                ; if (rbx > 18h) {
-            ja   case_def
+            ja   case_def                               ;     goto case_def }
 
 ;-----------Switch---------------------------------------------------------------------------------
 
@@ -234,9 +233,14 @@ PutNewSymbol:
 
 EndHandlerS:
             ret
-case_def:                                               ; default handler
 
+;-----------Default-case---------------------------------------------------------------------------
+
+case_def:                                               ; default handler
             ret
+
+;-----------Handler-'%%'---------------------------------------------------------------------------
+
 Percnt:
             mov  rbx, '%'                               ; rbx = '%'
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
