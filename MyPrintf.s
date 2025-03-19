@@ -18,13 +18,16 @@ _start:
 
 ;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
 
-            push MessageForYou                                    ; second argument
-            push 'A'                                    ; first  argument
+            push MessageForYou                          ; third  argument
+            ;push 'B'                                    ; second argument
+            ;push 'A'                                    ; first  argument
             push Format                                 ; push format string as first arguments
 
 ;-----------End--Arguments-of-My-Printf------------------------------------------------------------
 
             call _MyPrintf                              ; call my function of printf
+
+            add  rsp, 3 * 8                             ; clean arguments from stack
 
             mov rax, 0x3C                               ; exit64 (rdi)
             xor rdi, rdi
@@ -187,7 +190,10 @@ case_3:                                                 ; handler %c
 case_13:                                                ; handler %s
             mov  rbx, [rsp + 24 + 8 * r9]               ; rbx = string argument from stack
             mov  rdi, rbx                               ; rdi = rbx
+
+            push rdx                                    ; save rdx in stack
             call strlen                                 ; rax = len of string
+            pop  rdx                                    ; back rdx from stack
 
 ;-----------some-variants-of-output-this-string----------------------------------------------------
 
@@ -216,6 +222,7 @@ PutStringToBuffer:
             xor  r11, r11                               ; r11 = 0, r11 = counter symbol that put
                                                         ; to buffer from string
 PutNewSymbol:
+            xor  r10, r10                               ; r10 = 0
             mov  r10, [rbx + r11]                       ; r10 = rbx[r11], (string[r11]), r10 =
                                                         ; symbol from string
             mov  [Buffer + rdx], r10                    ; Buffer[rdx] = r10
@@ -303,7 +310,7 @@ JumpTable:
 UnknownSpecifier:
 
 
-Format:     db "d%cMeow%sMeo%bw%cMeo%%wGGG", 0x0a
+Format:     db "Kiss %s baby", 0x0a
 
 FormatLen:  equ $ - Format
 
@@ -313,4 +320,4 @@ BufferLen:  equ 64
 Msg:        db "Meow", 0x0a
 MsgLen      equ $ - Msg
 
-MessageForYou: db "YOOO!", 0x0a
+MessageForYou: db "Me"
