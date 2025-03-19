@@ -18,7 +18,7 @@ _start:
 
 ;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
 
-            push 'B'                                    ; second argument
+            push MessageForYou                                    ; second argument
             push 'A'                                    ; first  argument
             push Format                                 ; push format string as first arguments
 
@@ -126,7 +126,7 @@ EndRdFrmtStrng:
 ;         | return address to _MyPrintf <-- rsp         |
 ;         -----------------------------------------------
 ; Exit:     rdx = index of next free cell in buffer (changed)
-; Destroy:  rbx, rsi, rax, rdi, r9, rdx, r10
+; Destroy:  rbx, rsi, rax, rdi, r9, r10, r11, r12 rdx
 ;--------------------------------------------------------------------------------------------------
 ; need to process %(c,   s,   d,   x,   o,   b) and %%
 ; HEX               63h  73h  64h  78h  6Fh  62h
@@ -148,12 +148,14 @@ SwitchPrcssSpcfr:
             ja   case_def
 
 ;-----------Switch---------------------------------------------------------------------------------
+
             xor  rsi, rsi                               ; rsi = 0, register to addr of case
 
             movsxd rsi, [JumpTable + (rbx - 1) * 4]     ; take address from jump table
             jmp  rsi
 
 ;-----------Numbers-handlers-----------------------------------------------------------------------
+
 case_2:                                                 ; handler %b
 
 
@@ -169,7 +171,9 @@ case_F:                                                 ; handler %o
 case_18:                                                ; handler %x
 
             ret
+
 ;-----------Symbol-Handler-------------------------------------------------------------------------
+
 case_3:                                                 ; handler %c
             mov  rbx, [rsp + 24 + 8 * r9]               ; rbx = some argument from stack
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
@@ -177,17 +181,51 @@ case_3:                                                 ; handler %c
             inc  r9                                     ; r9++ <=> next argument
 
             ret
+
 ;-----------String-Handler-------------------------------------------------------------------------
+
 case_13:                                                ; handler %s
             mov  rbx, [rsp + 24 + 8 * r9]               ; rbx = string argument from stack
             mov  rdi, rbx                               ; rdi = rbx
             call strlen                                 ; rax = len of string
 
-            ;mov  r10, rax                               ; r10 = rax, save len of string
-            cmp  rax, BufferLen
-
 ;-----------some-variants-of-output-this-string----------------------------------------------------
 
+            cmp  rax, BufferLen                         ; if (rax < BufferLen) {
+            jb   NoWriteWithoutBuffer                   ; goto NoWriteWithoutBuffer }
+
+            mov  rsi, rbx                               ; rsi = string
+            mov  rdx, rax                               ; rdx = len string
+
+            call WriteBuf                               ; call function to output string
+
+            jmp  EndHandlerS                            ; goto EndHandlerS
+
+NoWriteWithoutBuffer:
+            mov  r12, BufferLen                         ; r12  = len of buffer
+            sub  r12, rdx                               ; r12 -= rdx
+
+            cmp  rax, r12                               ; if (rax < r12) {
+            jb   PutStringToBuffer                      ; goto PutStringToBuffer }
+
+            mov  rsi, Buffer                            ; rsi = string
+                                                        ; rdx = number of symbols to write
+            call WriteBuf                               ; call function to output and clean bufer
+
+PutStringToBuffer:
+            xor  r11, r11                               ; r11 = 0, r11 = counter symbol that put
+                                                        ; to buffer from string
+PutNewSymbol:
+            mov  r10, [rbx + r11]                       ; r10 = rbx[r11], (string[r11]), r10 =
+                                                        ; symbol from string
+            mov  [Buffer + rdx], r10                    ; Buffer[rdx] = r10
+            inc  rdx                                    ; rdx++
+            inc  r11                                    ; r11++
+
+            cmp  r11, rax                               ; if (r11 < rax) {
+            jb   PutNewSymbol                           ; goto PutNewSymbol }
+
+EndHandlerS:
             ret
 case_def:                                               ; default handler
 
@@ -265,7 +303,7 @@ JumpTable:
 UnknownSpecifier:
 
 
-Format:     db "d%cMeowMeo%bw%cMeo%%wGGG", 0x0a
+Format:     db "d%cMeow%sMeo%bw%cMeo%%wGGG", 0x0a
 
 FormatLen:  equ $ - Format
 
@@ -274,3 +312,5 @@ BufferLen:  equ 64
 
 Msg:        db "Meow", 0x0a
 MsgLen      equ $ - Msg
+
+MessageForYou: db "YOOO!", 0x0a
