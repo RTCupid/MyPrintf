@@ -18,7 +18,7 @@ _start:
             call _Meow                                  ; write "MeowMeowMeow" to consol
 
 ;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
-            mov  rax, 0xabcd78bd4876
+            mov  rax, 0xffffffffffffffff
 
             push rax                                    ; third  argument
             ;push 'B'                                   ; second argument
@@ -177,8 +177,11 @@ SwitchPrcssSpcfr:
             movsxd rsi, [JumpTable + (rbx - 1) * 4]     ; take address from jump table
             jmp  rsi
 
-;-----------Numbers-handlers-----------------------------------------------------------------------
+;--------------------------------------------------------------------------------------------------
+;           Numbers handlers                                                                      |
+;--------------------------------------------------------------------------------------------------
 
+;-----------Binary-handler-------------------------------------------------------------------------
 case_2:                                                 ; handler %b
             mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
 
@@ -219,9 +222,68 @@ case_4:                                                 ; handler %d
 
 
             ret
+
+;-----------Octal-handler--------------------------------------------------------------------------
+
 case_F:                                                 ; handler %o
 
+            mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
+
+            push rcx                                    ; save rcx in stack
+
+;-----------Prepare-elder-three-bits-of-octal-number-----------------------------------------------
+
+            mov  r13, 0x8000000000000000                ; r13 = mask for elder bit (r13 = 10...0b)
+
+            mov  rcx, 64                                ; rcx = counter of digits (binary)
+
+            sub  rcx, 1                                 ; rcx -= 2
+
+            push rbx                                    ; save rbx in stack
+
+            and  rbx, r13                               ; rbx &= r13
+
+            shr  rbx, cl                                ; rbx >> rcx to put number in bl
+
+            add  rbx, 30h                               ; rbx += 30 to find ASCII code of 0 or 1
+
+            mov  [Buffer + rdx], bl                     ; Buffer[rdx] = rbx
+            inc  rdx                                    ; rdx++
+
+            pop  rbx                                    ; back rbx from stack
+
+;-----------Prepare-other-bits-of-octal-number-----------------------------------------------------
+
+            mov  r13, 0x7000000000000000                ; r13 = mask for bits (r13 = 01110...0b)
+
+NewDigitsInOctal:
+
+            sub  rcx, 3                                 ; rcx -= 2
+
+            push rbx                                    ; save rbx in stack
+
+            and  rbx, r13                               ; rbx &= r13
+
+            shr  rbx, cl                                ; rbx >> rcx to put number in bl
+
+            add  rbx, 30h                               ; rbx += 30 to find ASCII code of 0 or 1
+
+            mov  [Buffer + rdx], bl                     ; Buffer[rdx] = rbx
+            inc  rdx                                    ; rdx++
+
+            shr  r13, 3                                 ; r13 >> 1, (r13 /= 2, r13 = 010...0b etc)
+
+            pop  rbx                                    ; back rbx from stack
+
+            cmp  rcx, 0                                 ; if (rcx == 0) {
+            ja   NewDigitsInOctal                       ;     goto NewDigitsInOctal }
+
+            pop  rcx                                    ; back rcx from stack
+
             ret
+
+;-----------Hex-handler----------------------------------------------------------------------------
+
 case_18:                                                ; handler %x
             mov  rbx, '0'                               ; rbx = '0'
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
@@ -241,7 +303,7 @@ case_18:                                                ; handler %x
 
 NewDigitsInHex:
 
-            sub  rcx, 4                                 ; rcx--
+            sub  rcx, 4                                 ; rcx -= 4
 
             push rbx                                    ; save rbx in stack
 
@@ -270,13 +332,15 @@ PrintHex:
             pop  rbx                                    ; back rbx from stack
 
             cmp  rcx, 0                                 ; if (rcx == 0) {
-            ja   NewDigitsInHex                         ;     goto NewDigitsInBinary }
+            ja   NewDigitsInHex                         ;     goto NewDigitsInHex }
 
             pop  rcx                                    ; back rcx from stack
 
             ret
 
-;-----------Symbol-Handler-------------------------------------------------------------------------
+;--------------------------------------------------------------------------------------------------
+;           Symbol Handler                                                                        |
+;--------------------------------------------------------------------------------------------------
 
 case_3:                                                 ; handler %c
             mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
@@ -286,8 +350,9 @@ case_3:                                                 ; handler %c
 
             ret
 
-;-----------String-Handler-------------------------------------------------------------------------
-
+;--------------------------------------------------------------------------------------------------
+;           String Handler                                                                        |
+;--------------------------------------------------------------------------------------------------
 case_13:                                                ; handler %s
             mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = string argument from stack
 
@@ -352,13 +417,15 @@ EndHandlerS:
 
             ret
 
-;-----------Default-case---------------------------------------------------------------------------
-
+;--------------------------------------------------------------------------------------------------
+;           Default Case                                                                          |
+;--------------------------------------------------------------------------------------------------
 case_def:                                               ; default handler
             ret
 
-;-----------Handler-'%%'---------------------------------------------------------------------------
-
+;--------------------------------------------------------------------------------------------------
+;           Handler %%                                                                            |
+;--------------------------------------------------------------------------------------------------
 Percnt:
             mov  rbx, '%'                               ; rbx = '%'
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
@@ -432,7 +499,7 @@ JumpTable:
 
 OfsStrtArgInStk: equ 24                                 ;offset of start arguments in stack
 
-Format:     db "%x", 0x0a
+Format:     db "%o", 0x0a
 
 FormatLen:  equ $ - Format
 
