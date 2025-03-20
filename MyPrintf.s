@@ -18,7 +18,7 @@ _start:
             call _Meow                                  ; write "MeowMeowMeow" to consol
 
 ;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
-            mov  rax, 0xffffffffffffffff
+            mov  rax, 0xabcd78bd4876
 
             push rax                                    ; third  argument
             ;push 'B'                                   ; second argument
@@ -212,6 +212,7 @@ NewDigitsInBinary:
             ja   NewDigitsInBinary                      ;     goto NewDigitsInBinary }
 
             pop  rcx                                    ; back rcx from stack
+
             ret
 
 case_4:                                                 ; handler %d
@@ -228,6 +229,50 @@ case_18:                                                ; handler %x
             mov  rbx, 'x'                               ; rbx = 'x'
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
             inc  rdx                                    ; rdx++
+
+            mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
+
+            push rcx                                    ; save rcx in stack
+
+            mov  r13, 0xF000000000000000                ; r13 = mask 4 elder bit (r13 = 11110...0b)
+            mov  rcx, 64                                ; rcx = counter of digits (binary)
+
+;           example: rbx = 0x123456789ABCDEF5           ; start to prepare it
+
+NewDigitsInHex:
+
+            sub  rcx, 4                                 ; rcx--
+
+            push rbx                                    ; save rbx in stack
+
+            and  rbx, r13                               ; rbx &= r13
+
+            shr  rbx, cl                                ; rbx >> rcx to put number in bl
+
+            cmp  rbx, 9                                 ; if (rbx > 10) {
+            ja   IsHexAlpha                             ;     goto IsHexAlpha }
+
+            add  rbx, 30h                               ; rbx += 30h to find ASCII from 1 to 9
+
+            jmp  PrintHex                               ; goto PrintHex
+
+IsHexAlpha:
+
+            add  rbx, 57h                               ; rbx += 51h to find ASCII from a to f
+
+PrintHex:
+
+            mov  [Buffer + rdx], bl                     ; Buffer[rdx] = rbx
+            inc  rdx                                    ; rdx++
+
+            shr  r13, 4                                 ; r13 >> 4, (r13 /= 16,
+                                                        ;            r13 = 000011110...0b etc)
+            pop  rbx                                    ; back rbx from stack
+
+            cmp  rcx, 0                                 ; if (rcx == 0) {
+            ja   NewDigitsInHex                         ;     goto NewDigitsInBinary }
+
+            pop  rcx                                    ; back rcx from stack
 
             ret
 
@@ -387,7 +432,7 @@ JumpTable:
 
 OfsStrtArgInStk: equ 24                                 ;offset of start arguments in stack
 
-Format:     db "%b", 0x0a
+Format:     db "%x", 0x0a
 
 FormatLen:  equ $ - Format
 
