@@ -18,7 +18,7 @@ _start:
             call _Meow                                  ; write "MeowMeowMeow" to consol
 
 ;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
-            mov  rax, 0xffffffffffffffff
+            mov  rax, 0xf67865ac309
 
             push rax                                    ; third  argument
             ;push 'B'                                   ; second argument
@@ -218,8 +218,64 @@ NewDigitsInBinary:
 
             ret
 
+;-----------Dex-handler----------------------------------------------------------------------------
+
 case_4:                                                 ; handler %d
 
+            push rdx                                    ; save rdx in stack
+                                                        ; rdx = index of next free cell in buffer
+
+            mov  rax, [rsp + OfsStrtArgInStk + 8 * r9]  ; rax = some argument from stack
+
+            mov  r13, rax                               ; r13 = rax, save value of rax
+
+            push rcx                                    ; save rcx in stack
+
+            mov  r12, 10                                ; r12 = factor for digits in dex type
+
+            div  r12                                    ; rdx = rax % 10
+
+            add  rdx, 30                                ; rdx += 30 to find ASCII of number
+
+            push rdx                                    ; push first digit of dex number
+
+            mov  rcx, 100                               ; rcx = factor for digits in dex type
+
+            mov  r14, 1                                 ; r14 = 0, r14 = counter of digits
+
+NewDigitsInDex:
+            mov  rax, r13                               ; rax = r13
+
+            cmp  rax,
+
+            div  rcx                                    ; rdx = rax % rcx           ---------------
+                                                                                    ;
+            mov  rax, rdx                               ; rax = rdx                 ; (rax%100)/10
+                                                                                    ;
+            div  r12                                    ; rax := r12                ---------------
+
+            add  rax, 30                                ; rdx += 30 to find ASCII of number
+
+            push rax                                    ; push next digit of dex number
+
+            inc  r14                                    ; r14++, r14 = counter of digits
+
+            cmp  r14, 16
+            jb   NewDigitsInDex                         ;     goto NewDigitsInBinary }
+
+;-----------Output-dex-number-from stack-to-buffer-------------------------------------------------
+
+NewDigitsInDexOutput:
+
+            pop  rax                                    ; take rax from stack
+                                                        ; rax = some digit of dex number
+
+            mov  [Buffer + rdx], al                     ; Buffer[rdx] = al
+
+            dec  r14                                    ; if (!--r14) {
+            jne  NewDigitsInDexOutput                   ;     goto NewDigitsInDexOutput }
+
+            pop  rcx                                    ; back rcx from stack
 
             ret
 
@@ -499,7 +555,7 @@ JumpTable:
 
 OfsStrtArgInStk: equ 24                                 ;offset of start arguments in stack
 
-Format:     db "%o", 0x0a
+Format:     db "%d", 0x0a
 
 FormatLen:  equ $ - Format
 
