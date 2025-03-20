@@ -11,6 +11,7 @@ section     .text
 
 global      _start                                      ; predefine entry point name for linker
 
+;extern printf
 extern strlen
 
 _start:
@@ -27,7 +28,11 @@ _start:
 
             call _MyPrintf                              ; call my function of printf
 
-            add  rsp, 3 * 8                             ; clean arguments from stack
+            add  rsp, 2 * 8                             ; clean arguments from stack
+
+            ;push 25
+            ;push Format                                 ; push format string as first arguments
+            ;call printf
 
             mov rax, 0x3C                               ; exit64 (rdi)
             xor rdi, rdi
@@ -127,8 +132,9 @@ EndRdFrmtStrng:
 ;         | return address to main      <-- rsp + 8     |
 ;         | return address to _MyPrintf <-- rsp         |
 ;         -----------------------------------------------
+;           OfsStrtArgInStack = 24
 ; Exit:     rdx = index of next free cell in buffer (changed)
-; Destroy:  rbx, rsi, rax, rdi, r9, r10, r11, r12 rdx
+; Destroy:  rbx, rsi, rax, rdi, r9, r10, r11, r12, rdx
 ;--------------------------------------------------------------------------------------------------
 ; need to process %(c,   s,   d,   x,   o,   b) and %%
 ; HEX               63h  73h  64h  78h  6Fh  62h
@@ -159,7 +165,7 @@ SwitchPrcssSpcfr:
 ;-----------Numbers-handlers-----------------------------------------------------------------------
 
 case_2:                                                 ; handler %b
-
+            mov  rbx, [rsp + OfsStrtArgInStack + 8 * r9] ; rbx = some argument from stack
 
             ret
 
@@ -177,7 +183,7 @@ case_18:                                                ; handler %x
 ;-----------Symbol-Handler-------------------------------------------------------------------------
 
 case_3:                                                 ; handler %c
-            mov  rbx, [rsp + 24 + 8 * r9]               ; rbx = some argument from stack
+            mov  rbx, [rsp + OfsStrtArgInStack + 8 * r9] ; rbx = some argument from stack
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
             inc  rdx                                    ; rdx++
             inc  r9                                     ; r9++ <=> next argument
@@ -187,11 +193,13 @@ case_3:                                                 ; handler %c
 ;-----------String-Handler-------------------------------------------------------------------------
 
 case_13:                                                ; handler %s
-            mov  rbx, [rsp + 24 + 8 * r9]               ; rbx = string argument from stack
-            mov  rdi, rbx                               ; rdi = rbx
+            mov  rbx, [rsp + OfsStrtArgInStack + 8 * r9] ; rbx = string argument from stack
 
             push rdx                                    ; save rdx in stack
+
+            mov  rdi, rbx                               ; rdi = rbx
             call strlen                                 ; rax = len of string
+
             pop  rdx                                    ; back rdx from stack
 
 ;-----------some-variants-of-output-this-string----------------------------------------------------
@@ -283,38 +291,38 @@ _Meow:
 
 ;--------------------------------------------------------------------------------------------------
 section     .data
-            align  8                                 ; align of 8 address in table
+            align  8                                    ; align of 8 address in table
 JumpTable:
-            dd case_def                              ; case 1  default
-            dd case_2                                ; case 2  (%b)
-            dd case_3                                ; case 3  (%c)
-            dd case_4                                ; case 4  (%d)
-            dd case_def                              ; case 5  default
-            dd case_def                              ; case 6  default
-            dd case_def                              ; case 7  default
-            dd case_def                              ; case 8  default
-            dd case_def                              ; case 9  default
-            dd case_def                              ; case A  default
-            dd case_def                              ; case B  default
-            dd case_def                              ; case C  default
-            dd case_def                              ; case D  default
-            dd case_def                              ; case E  default
-            dd case_F                                ; case F  (%o)
-            dd case_def                              ; case 10 default
-            dd case_def                              ; case 11 default
-            dd case_def                              ; case 12 default
-            dd case_13                               ; case 13 (%s)
-            dd case_def                              ; case 14 default
-            dd case_def                              ; case 15 default
-            dd case_def                              ; case 16 default
-            dd case_def                              ; case 17 default
-            dd case_18                               ; case 18 (%x)
-            dd case_def                              ; case    default
-
-UnknownSpecifier:
+            dd case_def                                 ; case 1  default
+            dd case_2                                   ; case 2  (%b)
+            dd case_3                                   ; case 3  (%c)
+            dd case_4                                   ; case 4  (%d)
+            dd case_def                                 ; case 5  default
+            dd case_def                                 ; case 6  default
+            dd case_def                                 ; case 7  default
+            dd case_def                                 ; case 8  default
+            dd case_def                                 ; case 9  default
+            dd case_def                                 ; case A  default
+            dd case_def                                 ; case B  default
+            dd case_def                                 ; case C  default
+            dd case_def                                 ; case D  default
+            dd case_def                                 ; case E  default
+            dd case_F                                   ; case F  (%o)
+            dd case_def                                 ; case 10 default
+            dd case_def                                 ; case 11 default
+            dd case_def                                 ; case 12 default
+            dd case_13                                  ; case 13 (%s)
+            dd case_def                                 ; case 14 default
+            dd case_def                                 ; case 15 default
+            dd case_def                                 ; case 16 default
+            dd case_def                                 ; case 17 default
+            dd case_18                                  ; case 18 (%x)
+            dd case_def                                 ; case    default
 
 
-Format:     db "Kiss %s baby", 0x0a
+OfsStrtArgInStack: equ 24                                ;offset of start arguments in stack
+
+Format:     db "%s", 0x0a
 
 FormatLen:  equ $ - Format
 
