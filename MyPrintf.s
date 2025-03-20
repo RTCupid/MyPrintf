@@ -18,10 +18,11 @@ _start:
             call _Meow                                  ; write "MeowMeowMeow" to consol
 
 ;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
+            mov  rax, 0xffffffffffffffff
 
-            push MessageForYou                          ; third  argument
-            ;push 'B'                                    ; second argument
-            ;push 'A'                                    ; first  argument
+            push rax                                    ; third  argument
+            ;push 'B'                                   ; second argument
+            ;push 'A'                                   ; first  argument
             push Format                                 ; push format string as first arguments
 
 ;-----------End--Arguments-of-My-Printf------------------------------------------------------------
@@ -57,6 +58,7 @@ _start:
 ; Destroy:  rax, rbx, rdx, rdi, rsi, rcx
 ;--------------------------------------------------------------------------------------------------
 _MyPrintf:
+
             xor  rcx, rcx                               ; rcx = 0, rcx = counter symbols
                                                         ;   that was read from format string
             xor  rdx, rdx                               ; rdx = 0, rdx = counter symbols
@@ -80,9 +82,10 @@ RdFrmtStrng:
 
             inc  rcx                                    ; rcx++
 
-            jmp SpecifierIsProccessed                   ; goto SpecifierIsProccessed
+            jmp  SpecifierIsProccessed                  ; goto SpecifierIsProccessed
 
 NotSpecifier:
+
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
             inc  rdx                                    ; rdx++
 
@@ -97,7 +100,17 @@ SpecifierIsProccessed:
             cmp  rdx, 64                                ; hardcode, 64 - magic circles len of buff
                                                         ; if (rdx != 64) {
             jb   NoOverflowBuffer                       ;   goto NoOverflowBuffer  }
+
+            push rcx                                    ; save rcx in stack
+                                                        ;------------------------------------
+            mov  rsi, Buffer                            ; rsi = addr of buffer              |
+                                                        ; rdx = number of symbols to write  |
+                                                        ;------------------------------------
             call WriteBuf                               ; write symbols from buffer
+
+            pop  rcx                                    ; back rcx from stack
+
+
                                                         ;   to console and clear buffer
 ;-----------End-check------------------------------------------------------------------------------
 
@@ -140,6 +153,7 @@ EndRdFrmtStrng:
 ; HEX               63h  73h  64h  78h  6Fh  62h
 
 ProcessSpecifier:
+
             xor  rbx, rbx                               ; rbx = 0, register for symbols from format
 
             mov  bl, [r8 + rcx]                         ; bl = char of specifier
@@ -148,6 +162,7 @@ ProcessSpecifier:
             je   Percnt                                 ; goto Percnt }
 
 SwitchPrcssSpcfr:
+
 ;-----------Count-index-for-cases------------------------------------------------------------------
 
             sub  bl, 60h                                ; rbx -= 60h to switch counter for cases
@@ -165,8 +180,38 @@ SwitchPrcssSpcfr:
 ;-----------Numbers-handlers-----------------------------------------------------------------------
 
 case_2:                                                 ; handler %b
-            mov  rbx, [rsp + OfsStrtArgInStack + 8 * r9] ; rbx = some argument from stack
+            mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
 
+            push rcx                                    ; save rcx in stack
+
+            mov  r13, 8000000000000000h                 ; r13 = mask for elder bit (r13 = 10...0b)
+            mov  rcx, 64                                ; rcx = counter of digits (binary)
+
+;           example: rbx = 0x123456789ABCDEF5           ; start to prepare it
+
+NewDigitsInBinary:
+
+            dec  rcx                                    ; rcx--
+
+            push rbx                                    ; save rbx in stack
+
+            and  rbx, r13                               ; rbx &= r13
+
+            shr  rbx, cl                                ; rbx >> rcx to put number in bl
+
+            add  rbx, 30h                               ; rbx += 30 to find ASCII code of 0 or 1
+
+            mov  [Buffer + rdx], bl                     ; Buffer[rdx] = rbx
+            inc  rdx                                    ; rdx++
+
+            shr  r13, 1                                 ; r13 >> 1, (r13 /= 2, r13 = 010...0b etc)
+
+            pop  rbx                                    ; back rbx from stack
+
+            cmp  rcx, 0                                 ; if (rcx == 0) {
+            ja   NewDigitsInBinary                      ;     goto NewDigitsInBinary }
+
+            pop  rcx                                    ; back rcx from stack
             ret
 
 case_4:                                                 ; handler %d
@@ -177,13 +222,19 @@ case_F:                                                 ; handler %o
 
             ret
 case_18:                                                ; handler %x
+            mov  rbx, '0'                               ; rbx = '0'
+            mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
+            inc  rdx                                    ; rdx++
+            mov  rbx, 'x'                               ; rbx = 'x'
+            mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
+            inc  rdx                                    ; rdx++
 
             ret
 
 ;-----------Symbol-Handler-------------------------------------------------------------------------
 
 case_3:                                                 ; handler %c
-            mov  rbx, [rsp + OfsStrtArgInStack + 8 * r9] ; rbx = some argument from stack
+            mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
             inc  rdx                                    ; rdx++
             inc  r9                                     ; r9++ <=> next argument
@@ -193,7 +244,7 @@ case_3:                                                 ; handler %c
 ;-----------String-Handler-------------------------------------------------------------------------
 
 case_13:                                                ; handler %s
-            mov  rbx, [rsp + OfsStrtArgInStack + 8 * r9] ; rbx = string argument from stack
+            mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = string argument from stack
 
             push rdx                                    ; save rdx in stack
 
@@ -210,11 +261,17 @@ case_13:                                                ; handler %s
             mov  rsi, rbx                               ; rsi = string
             mov  rdx, rax                               ; rdx = len string
 
+            push rcx                                    ; save rcx in stack
+
             call WriteBuf                               ; call function to output string
+
+            pop  rcx                                    ; back rcx from stack
+
 
             jmp  EndHandlerS                            ; goto EndHandlerS
 
 NoWriteWithoutBuffer:
+
             mov  r12, BufferLen                         ; r12  = len of buffer
             sub  r12, rdx                               ; r12 -= rdx
 
@@ -223,12 +280,19 @@ NoWriteWithoutBuffer:
 
             mov  rsi, Buffer                            ; rsi = string
                                                         ; rdx = number of symbols to write
+            push rcx                                    ; save rcx in stack
+
             call WriteBuf                               ; call function to output and clean bufer
 
+            pop  rcx                                    ; back rcx from stack
+
+
 PutStringToBuffer:
+
             xor  r11, r11                               ; r11 = 0, r11 = counter symbol that put
                                                         ; to buffer from string
 PutNewSymbol:
+
             xor  r10, r10                               ; r10 = 0
             mov  r10, [rbx + r11]                       ; r10 = rbx[r11], (string[r11]), r10 =
                                                         ; symbol from string
@@ -240,6 +304,7 @@ PutNewSymbol:
             jb   PutNewSymbol                           ; goto PutNewSymbol }
 
 EndHandlerS:
+
             ret
 
 ;-----------Default-case---------------------------------------------------------------------------
@@ -320,14 +385,14 @@ JumpTable:
             dd case_def                                 ; case    default
 
 
-OfsStrtArgInStack: equ 24                                ;offset of start arguments in stack
+OfsStrtArgInStk: equ 24                                 ;offset of start arguments in stack
 
-Format:     db "%s", 0x0a
+Format:     db "%b", 0x0a
 
 FormatLen:  equ $ - Format
 
-Buffer:     TIMES 64 db 0
-BufferLen:  equ 64
+Buffer:     TIMES 128 db 0
+BufferLen:  equ 128
 
 Msg:        db "Meow", 0x0a
 MsgLen      equ $ - Msg
