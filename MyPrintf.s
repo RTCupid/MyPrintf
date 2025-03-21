@@ -221,61 +221,43 @@ NewDigitsInBinary:
 ;-----------Dex-handler----------------------------------------------------------------------------
 
 case_4:                                                 ; handler %d
-
-            push rdx                                    ; save rdx in stack
                                                         ; rdx = index of next free cell in buffer
-
             mov  rax, [rsp + OfsStrtArgInStk + 8 * r9]  ; rax = some argument from stack
 
-            mov  r13, rax                               ; r13 = rax, save value of rax
+            mov  r14, rdx                               ; save old value rdx in r14
 
-            push rcx                                    ; save rcx in stack
+            mov  r12, 10                                ; r12 = 10, factor for div
 
-            mov  r12, 10                                ; r12 = factor for digits in dex type
+            xor  r13, r13                               ; r13 = 0, r13 = counter of dex digits
 
-            div  r12                                    ; rdx = rax % 10
+NewDigitDex:
 
-            add  rdx, 30                                ; rdx += 30 to find ASCII of number
+            xor  rdx, rdx                               ; rdx = 0              -------------
+                                                        ;             number - | rdx : rax |
+                                                        ;                      -------------
+            div  r12                                    ; rax = rdx / 10, rdx = rdx % 10 (r12 = 10)
 
-            push rdx                                    ; push first digit of dex number
+            push rdx                                    ; rdx to stack, rdx - digit of number
 
-            mov  rcx, 100                               ; rcx = factor for digits in dex type
+            inc  r13                                    ; r13++, r13 = counter of dex digits
 
-            mov  r14, 1                                 ; r14 = 0, r14 = counter of digits
+            cmp  rax, 0                                 ; if (rdx != 0) {
 
-NewDigitsInDex:
-            mov  rax, r13                               ; rax = r13
-
-            cmp  rax,
-
-            div  rcx                                    ; rdx = rax % rcx           ---------------
-                                                                                    ;
-            mov  rax, rdx                               ; rax = rdx                 ; (rax%100)/10
-                                                                                    ;
-            div  r12                                    ; rax := r12                ---------------
-
-            add  rax, 30                                ; rdx += 30 to find ASCII of number
-
-            push rax                                    ; push next digit of dex number
-
-            inc  r14                                    ; r14++, r14 = counter of digits
-
-            cmp  r14, 16
-            jb   NewDigitsInDex                         ;     goto NewDigitsInBinary }
+            jne  NewDigitDex                            ; goto NewDigitDex }
 
 ;-----------Output-dex-number-from stack-to-buffer-------------------------------------------------
+
+            mov  rdx, r14                               ; rdx = r14, back old value of rdx
 
 NewDigitsInDexOutput:
 
             pop  rax                                    ; take rax from stack
                                                         ; rax = some digit of dex number
-
             mov  [Buffer + rdx], al                     ; Buffer[rdx] = al
+            inc  rdx                                    ; rdx++
 
-            dec  r14                                    ; if (!--r14) {
+            dec  r13                                    ; if (!--r13) {
             jne  NewDigitsInDexOutput                   ;     goto NewDigitsInDexOutput }
-
-            pop  rcx                                    ; back rcx from stack
 
             ret
 
