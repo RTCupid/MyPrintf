@@ -19,11 +19,53 @@ _start:
 
 ;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
             ;mov  rax, 0xf67865ac309
-            xor  rax, rax                               ; rax = 0
-            mov  rax, 123                               ; rax = 123
-            ;mov  rax, 'A'                               ; rax = 123
 
+;             -1, -1, "love", 3802, 100, 33, 127,
+;                                                                  -1, "love", 3802, 100, 33, 127,
+;             xor  rax, rax                               ; rax = 0
+;             mov  rax, 123                               ; rax = 123
+;             push rax                                    ; first  argument
+;
+;             xor  rax, rax                               ; rax = 0
+;             mov  rax, 123                               ; rax = 123
+;             push rax                                    ; first  argument
+;
+;             xor  rax, rax                               ; rax = 0
+;             mov  rax, 123                               ; rax = 123
+;             push rax                                    ; first  argument
+;
+;             xor  rax, rax                               ; rax = 0
+;             mov  rax, 123                               ; rax = 123
+;             push rax                                    ; first  argument
+;
+;             xor  rax, rax                               ; rax = 0
+;             mov  rax, 123                               ; rax = 123
+;             push rax                                    ; first  argument
+;
+;             xor  rax, rax                               ; rax = 0
+;             mov  rax, 123                               ; rax = 123
+;             push rax                                    ; first  argument
+;
+;             xor  rax, rax                               ; rax = 0
+;             mov  rax, 123                               ; rax = 123
+;             push rax                                    ; first  argument
+;
+;             xor  rax, rax                               ; rax = 0
+;             mov  rax, 123                               ; rax = 123
+;             push rax                                    ; first  argument
+;
+;             xor  rax, rax                               ; rax = 0
+;             mov  rax, 123                               ; rax = 123
+;             push rax                                    ; first  argument
+;
+;             xor  rax, rax                               ; rax = 0
+;             mov  rax, 123                               ; rax = 123
+;             push rax                                    ; first  argument
+
+            xor  rax, rax                               ; rax = 0
+            mov  rax, -1                                ; rax = 123
             push rax                                    ; first  argument
+
             push Format                                 ; push format string as first arguments
 
 ;-----------End--Arguments-of-My-Printf------------------------------------------------------------
@@ -544,6 +586,8 @@ JumpTable:
 
 
 OfsStrtArgInStk: equ 24                                 ;offset of start arguments in stack
+
+;Format:     db "%o\n%d %s %x %d%%%c%b\n%d %s %x %d%%%c%b", 0x0a
 
 Format:     db "%d", 0x0a
 
