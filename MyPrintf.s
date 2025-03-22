@@ -9,12 +9,14 @@
 
 section     .text
 
-global      _start                                      ; predefine entry point name for linker
+global      _my_start                                      ; predefine entry point name for linker
+
+global      _MyPrintf                                   ; predefine func for linker
 
 ;extern printf
 extern strlen
 
-_start:
+_my_start:
             call _Meow                                  ; write "MeowMeowMeow" to consol
 
 ;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
@@ -106,6 +108,29 @@ _start:
 ;--------------------------------------------------------------------------------------------------
 _MyPrintf:
 
+            push rbx                                    ;---------------------------
+            push rbp                                    ; Callee-                  |
+            push r12                                    ;       -Save-             |
+            push r13                                    ;            -Registers    |
+            push r14                                    ;                          |
+            ;push r15                                   ; r15 don't use in program |
+                                                        ;---------------------------
+
+;         --STACK (cdecl)--------------------------------
+;         | ...                                         |
+;         | ...                                         |
+;         | ...                                         |
+;         | arg2                      ...               |
+;         | arg1                      <-- rsp + 56      |
+;         | Format string             <-- rsp + 48      |
+;         | return address to main    <-- rsp + 40      |
+;         | rbx                       <-- rsp + 32      |
+;         | rbp                       <-- rsp + 24      |
+;         | r12                       <-- rsp + 16      |
+;         | r13                       <-- rsp + 8       |
+;         | r14                       <-- rsp           |
+;         -----------------------------------------------
+
             xor  rcx, rcx                               ; rcx = 0, rcx = counter symbols
                                                         ;   that was read from format string
             xor  rdx, rdx                               ; rdx = 0, rdx = counter symbols
@@ -116,7 +141,7 @@ _MyPrintf:
 
 ;-----------Start-of-Read-Format-String------------------------------------------------------------
 
-            mov  r8, 8[rsp]                             ; r8 = format string from stack
+            mov  r8, [rsp + OfsFrmtStrng]               ; r8 = format string from stack
 
 RdFrmtStrng:
 
@@ -124,6 +149,18 @@ RdFrmtStrng:
 
             mov  bl, [r8 + rcx]                         ; rbx = symbol from format string
             inc  rcx                                    ; rcx++
+
+;             cmp  bl, 0x5c                               ; if (rbx != '\') {
+;             jne  NotBackslash                           ;     goto NotBackslash }
+;
+;             mov  bl, [r8 + rcx]                         ; rbx = symbol after '\'
+;             inc  rcx                                    ; rcx++ <=> rcx = new symbol in format str
+;
+;             cmp
+;
+;NotBackslash:
+
+;-----------Check-specifier-or-not-----------------------------------------------------------------
 
             cmp  bl, '%'                                ; if (rbx != '%') {
             jne  NotSpecifier                           ;     goto NotSpecifier }
@@ -133,6 +170,8 @@ RdFrmtStrng:
             inc  rcx                                    ; rcx++
 
             jmp  SpecifierIsProccessed                  ; goto SpecifierIsProccessed
+
+;-----------End-check------------------------------------------------------------------------------
 
 NotSpecifier:
 
@@ -177,6 +216,13 @@ EndRdFrmtStrng:
                                                         ;------------------------------------
             call WriteBuf                               ; func to write symbols from buffer
                                                         ;   to console and clear buffer
+
+            ;pop  r15                                   ;---------------------------
+            pop  r14                                    ; Callee-                  |
+            pop  r13                                    ;       -Save-             |
+            pop  r12                                    ;            -Registers    |
+            pop  rbp                                    ; r15 don't use in program |
+            pop  rbx                                    ;---------------------------
             ret
 
 ;--------------------------------------------------------------------------------------------------
@@ -189,10 +235,15 @@ EndRdFrmtStrng:
 ;         | ...                                         |
 ;         | ...                                         |
 ;         | ...                                         |
-;         | arg2                        ...             |
-;         | arg1                        <-- rsp + 24    |
-;         | Format string               <-- rsp + 16    |
-;         | return address to main      <-- rsp + 8     |
+;         | arg2                      ...               |
+;         | arg1                      <-- rsp + 64      |
+;         | Format string             <-- rsp + 56      |
+;         | return address to main    <-- rsp + 48      |
+;         | rbx                       <-- rsp + 40      |
+;         | rbp                       <-- rsp + 32      |
+;         | r12                       <-- rsp + 24      |
+;         | r13                       <-- rsp + 16      |
+;         | r14                       <-- rsp + 8       |
 ;         | return address to _MyPrintf <-- rsp         |
 ;         -----------------------------------------------
 ;           OfsStrtArgInStack = 24
@@ -637,8 +688,8 @@ JumpTable:
             dd case_18                                  ; case 18 (%x)
             dd case_def                                 ; case    default
 
-
-OfsStrtArgInStk: equ 24                                 ;offset of start arguments in stack
+OfsFrmtStrng:    equ 48
+OfsStrtArgInStk: equ 64                                 ;offset of start arguments in stack
 
 Format:     db "%o\n%d %s %x %d%%%c%b\n%d %s %x %d%%%c%b", 0x0a
 
@@ -658,3 +709,5 @@ Msg:        db "Meow", 0x0a
 MsgLen      equ $ - Msg
 
 MessageForYou: db "Me"
+
+section     .note.GNU-stack
