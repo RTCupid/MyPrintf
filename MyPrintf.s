@@ -18,11 +18,12 @@ _start:
             call _Meow                                  ; write "MeowMeowMeow" to consol
 
 ;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
-            mov  rax, 0xf67865ac309
+            ;mov  rax, 0xf67865ac309
+            xor  rax, rax                               ; rax = 0
+            mov  rax, 123                               ; rax = 123
+            ;mov  rax, 'A'                               ; rax = 123
 
-            push rax                                    ; third  argument
-            ;push 'B'                                   ; second argument
-            ;push 'A'                                   ; first  argument
+            push rax                                    ; first  argument
             push Format                                 ; push format string as first arguments
 
 ;-----------End--Arguments-of-My-Printf------------------------------------------------------------
@@ -64,6 +65,9 @@ _MyPrintf:
             xor  rdx, rdx                               ; rdx = 0, rdx = counter symbols
                                                         ;   that was write to buffer of printf
             xor  r9,  r9                                ; r9  = 0, r9  = counter arguments
+
+            xor  r8,  r8                                ; r8 = will be format string from stack
+
 ;-----------Start-of-Read-Format-String------------------------------------------------------------
 
             mov  r8, 8[rsp]                             ; r8 = format string from stack
@@ -92,11 +96,14 @@ NotSpecifier:
 SpecifierIsProccessed:
 
 ;-----------Check-condition-of-end-reading-format-string-------------------------------------------
+
             cmp  rcx, FormatLen                         ; if (rcx == FormatLen) {
             je   EndRdFrmtStrng                         ;   goto EndRdFrmtStrng }
+
 ;-----------End-check------------------------------------------------------------------------------
 
 ;-----------Check-Buffer-Overflow------------------------------------------------------------------
+
             cmp  rdx, 64                                ; hardcode, 64 - magic circles len of buff
                                                         ; if (rdx != 64) {
             jb   NoOverflowBuffer                       ;   goto NoOverflowBuffer  }
@@ -107,11 +114,9 @@ SpecifierIsProccessed:
                                                         ; rdx = number of symbols to write  |
                                                         ;------------------------------------
             call WriteBuf                               ; write symbols from buffer
-
+                                                        ;   to console and clear buffer
             pop  rcx                                    ; back rcx from stack
 
-
-                                                        ;   to console and clear buffer
 ;-----------End-check------------------------------------------------------------------------------
 
 NoOverflowBuffer:
@@ -248,11 +253,14 @@ NewDigitDex:
 ;-----------Output-dex-number-from stack-to-buffer-------------------------------------------------
 
             mov  rdx, r14                               ; rdx = r14, back old value of rdx
+            xor  rax, rax                               ; rax = 0
 
 NewDigitsInDexOutput:
 
             pop  rax                                    ; take rax from stack
                                                         ; rax = some digit of dex number
+            add  rax, 30h                               ; rax += 30h to find ASCII code of number
+
             mov  [Buffer + rdx], al                     ; Buffer[rdx] = al
             inc  rdx                                    ; rdx++
 
