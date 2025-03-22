@@ -20,50 +20,54 @@ _start:
 ;-----------Push-Arguments-of-My-Printf------------------------------------------------------------
             ;mov  rax, 0xf67865ac309
 
-;             -1, -1, "love", 3802, 100, 33, 127,
-;                                                                  -1, "love", 3802, 100, 33, 127,
+            ;-1, -1, "love", 3802, 100, 33, 127,
+            ;                                                     -1, "love", 3802, 100, 33, 127,
 ;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 123                               ; rax = 123
+;             mov  rax, 127                               ; rax = 123
 ;             push rax                                    ; first  argument
 ;
 ;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 123                               ; rax = 123
+;             mov  rax, 33                                ; rax = 123
 ;             push rax                                    ; first  argument
 ;
 ;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 123                               ; rax = 123
+;             mov  rax, 100                               ; rax = 123
 ;             push rax                                    ; first  argument
 ;
 ;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 123                               ; rax = 123
+;             mov  rax, 3802                              ; rax = 123
+;             push rax                                    ; first  argument
+;
+;             push Love                                   ; first  argument
+;
+;             xor  rax, rax                               ; rax = 0
+;             mov  rax, -1                                ; rax = 123
 ;             push rax                                    ; first  argument
 ;
 ;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 123                               ; rax = 123
+;             mov  rax, 127                               ; rax = 123
 ;             push rax                                    ; first  argument
 ;
 ;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 123                               ; rax = 123
+;             mov  rax, 33                                ; rax = 123
 ;             push rax                                    ; first  argument
 ;
 ;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 123                               ; rax = 123
+;             mov  rax, 100                               ; rax = 123
 ;             push rax                                    ; first  argument
 ;
 ;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 123                               ; rax = 123
+;             mov  rax, 3802                              ; rax = 123
 ;             push rax                                    ; first  argument
 ;
-;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 123                               ; rax = 123
-;             push rax                                    ; first  argument
-;
-;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 123                               ; rax = 123
-;             push rax                                    ; first  argument
+;             push Love                                   ; first  argument
 
             xor  rax, rax                               ; rax = 0
             mov  rax, -1                                ; rax = 123
+            push rax                                    ; second  argument
+
+            xor  rax, rax                               ; rax = 0
+            mov  rax, -1                                ; rax =
             push rax                                    ; first  argument
 
             push Format                                 ; push format string as first arguments
@@ -72,7 +76,7 @@ _start:
 
             call _MyPrintf                              ; call my function of printf
 
-            add  rsp, 2 * 8                             ; clean arguments from stack
+            add  rsp, 14 * 8                            ; clean arguments from stack
 
             ;push 25
             ;push Format                                 ; push format string as first arguments
@@ -146,8 +150,7 @@ SpecifierIsProccessed:
 
 ;-----------Check-Buffer-Overflow------------------------------------------------------------------
 
-            cmp  rdx, 64                                ; hardcode, 64 - magic circles len of buff
-                                                        ; if (rdx != 64) {
+            cmp  rdx, 128                               ; if (rdx < 128) {
             jb   NoOverflowBuffer                       ;   goto NoOverflowBuffer  }
 
             push rcx                                    ; save rcx in stack
@@ -232,6 +235,17 @@ SwitchPrcssSpcfr:
 case_2:                                                 ; handler %b
             mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
 
+            cmp  rbx, 0                                 ; if (rax > 0) {
+            jg   BinPositiveParam                       ;     goto BinPositiveParam }
+
+            neg  rbx                                    ; rbx = -rbx, find positive value of rbx
+
+            mov  rax, '-'                               ; rax = '-'
+            mov  [Buffer + rdx], al                     ; Buffer[rdx] = al
+            inc  rdx                                    ; rdx++
+
+BinPositiveParam:
+
             push rcx                                    ; save rcx in stack
 
             mov  r13, 8000000000000000h                 ; r13 = mask for elder bit (r13 = 10...0b)
@@ -270,6 +284,17 @@ NewDigitsInBinary:
 case_4:                                                 ; handler %d
                                                         ; rdx = index of next free cell in buffer
             mov  rax, [rsp + OfsStrtArgInStk + 8 * r9]  ; rax = some argument from stack
+
+            cmp  rax, 0                                 ; if (rax > 0) {
+            jg   DexPositiveParam                       ;     goto DexPositiveParam }
+
+            neg  rax                                    ; rax = -rax, find positive value of rax
+
+            mov  rbx, '-'
+            mov  [Buffer + rdx], bl                     ; Buffer[rdx] = '-'
+            inc  rdx                                    ; rdx++
+
+DexPositiveParam:
 
             mov  r14, rdx                               ; save old value rdx in r14
 
@@ -316,6 +341,17 @@ NewDigitsInDexOutput:
 case_F:                                                 ; handler %o
 
             mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
+
+            cmp  rbx, 0                                 ; if (rax > 0) {
+            jg   OctPositiveParam                       ;     goto OctPositiveParam }
+
+            neg  rbx                                    ; rbx = -rbx, find positive value of rbx
+
+            mov  rax, '-'                               ; rax = '-'
+            mov  [Buffer + rdx], al                     ; Buffer[rdx] = al
+            inc  rdx                                    ; rdx++
+
+OctPositiveParam:
 
             push rcx                                    ; save rcx in stack
 
@@ -381,6 +417,17 @@ case_18:                                                ; handler %x
             inc  rdx                                    ; rdx++
 
             mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
+
+            cmp  rbx, 0                                 ; if (rax > 0) {
+            jg   HexPositiveParam                       ;     goto HexPositiveParam }
+
+            neg  rbx                                    ; rbx = -rbx, find positive value of rbx
+
+            mov  rax, '-'                               ; rax = '-'
+            mov  [Buffer + rdx], al                     ; Buffer[rdx] = al
+            inc  rdx                                    ; rdx++
+
+HexPositiveParam:
 
             push rcx                                    ; save rcx in stack
 
@@ -589,12 +636,16 @@ OfsStrtArgInStk: equ 24                                 ;offset of start argumen
 
 ;Format:     db "%o\n%d %s %x %d%%%c%b\n%d %s %x %d%%%c%b", 0x0a
 
-Format:     db "%d", 0x0a
+Format:     db "%o\n%d", 0x0a ; %s %x %d%%%c%b\n%d %s %x %d%%%c%b"
+
+;Format:     db "%d", 0x0a
 
 FormatLen:  equ $ - Format
 
-Buffer:     TIMES 128 db 0
-BufferLen:  equ 128
+Love:       db "love"
+
+Buffer:     TIMES 256 db 0
+BufferLen:  equ 256
 
 Msg:        db "Meow", 0x0a
 MsgLen      equ $ - Msg
