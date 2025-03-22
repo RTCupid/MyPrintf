@@ -22,45 +22,45 @@ _start:
 
             ;-1, -1, "love", 3802, 100, 33, 127,
             ;                                                     -1, "love", 3802, 100, 33, 127,
-;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 127                               ; rax = 123
-;             push rax                                    ; first  argument
-;
-;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 33                                ; rax = 123
-;             push rax                                    ; first  argument
-;
-;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 100                               ; rax = 123
-;             push rax                                    ; first  argument
-;
-;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 3802                              ; rax = 123
-;             push rax                                    ; first  argument
-;
-;             push Love                                   ; first  argument
-;
-;             xor  rax, rax                               ; rax = 0
-;             mov  rax, -1                                ; rax = 123
-;             push rax                                    ; first  argument
-;
-;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 127                               ; rax = 123
-;             push rax                                    ; first  argument
-;
-;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 33                                ; rax = 123
-;             push rax                                    ; first  argument
-;
-;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 100                               ; rax = 123
-;             push rax                                    ; first  argument
-;
-;             xor  rax, rax                               ; rax = 0
-;             mov  rax, 3802                              ; rax = 123
-;             push rax                                    ; first  argument
-;
-;             push Love                                   ; first  argument
+            xor  rax, rax                               ; rax = 0
+            mov  rax, 127                               ; rax = 123
+            push rax                                    ; first  argument
+
+            xor  rax, rax                               ; rax = 0
+            mov  rax, 33                                ; rax = 123
+            push rax                                    ; first  argument
+
+            xor  rax, rax                               ; rax = 0
+            mov  rax, 100                               ; rax = 123
+            push rax                                    ; first  argument
+
+            xor  rax, rax                               ; rax = 0
+            mov  rax, 3802                              ; rax = 123
+            push rax                                    ; first  argument
+
+            push Love                                   ; first  argument
+
+            xor  rax, rax                               ; rax = 0
+            mov  rax, -1                                ; rax = 123
+            push rax                                    ; first  argument
+
+            xor  rax, rax                               ; rax = 0
+            mov  rax, 127                               ; rax = 123
+            push rax                                    ; first  argument
+
+            xor  rax, rax                               ; rax = 0
+            mov  rax, 33                                ; rax = 123
+            push rax                                    ; first  argument
+
+            xor  rax, rax                               ; rax = 0
+            mov  rax, 100                               ; rax = 123
+            push rax                                    ; first  argument
+
+            xor  rax, rax                               ; rax = 0
+            mov  rax, 3802                              ; rax = 123
+            push rax                                    ; first  argument
+
+            push Love                                   ; first  argument
 
             xor  rax, rax                               ; rax = 0
             mov  rax, -1                                ; rax = 123
@@ -76,7 +76,7 @@ _start:
 
             call _MyPrintf                              ; call my function of printf
 
-            add  rsp, 14 * 8                            ; clean arguments from stack
+            add  rsp, 2 * 8                            ; clean arguments from stack
 
             ;push 25
             ;push Format                                 ; push format string as first arguments
@@ -234,6 +234,7 @@ SwitchPrcssSpcfr:
 ;-----------Binary-handler-------------------------------------------------------------------------
 case_2:                                                 ; handler %b
             mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
+            inc  r9                                     ; r9++ <=> next argument
 
             cmp  rbx, 0                                 ; if (rax > 0) {
             jg   BinPositiveParam                       ;     goto BinPositiveParam }
@@ -284,6 +285,7 @@ NewDigitsInBinary:
 case_4:                                                 ; handler %d
                                                         ; rdx = index of next free cell in buffer
             mov  rax, [rsp + OfsStrtArgInStk + 8 * r9]  ; rax = some argument from stack
+            inc  r9                                     ; r9++ <=> next argument
 
             cmp  rax, 0                                 ; if (rax > 0) {
             jg   DexPositiveParam                       ;     goto DexPositiveParam }
@@ -341,6 +343,7 @@ NewDigitsInDexOutput:
 case_F:                                                 ; handler %o
 
             mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
+            inc  r9                                     ; r9++ <=> next argument
 
             cmp  rbx, 0                                 ; if (rax > 0) {
             jg   OctPositiveParam                       ;     goto OctPositiveParam }
@@ -417,6 +420,7 @@ case_18:                                                ; handler %x
             inc  rdx                                    ; rdx++
 
             mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
+            inc  r9                                     ; r9++ <=> next argument
 
             cmp  rbx, 0                                 ; if (rax > 0) {
             jg   HexPositiveParam                       ;     goto HexPositiveParam }
@@ -479,9 +483,10 @@ PrintHex:
 
 case_3:                                                 ; handler %c
             mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
+            inc  r9                                     ; r9++ <=> next argument
+
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
             inc  rdx                                    ; rdx++
-            inc  r9                                     ; r9++ <=> next argument
 
             ret
 
@@ -490,6 +495,7 @@ case_3:                                                 ; handler %c
 ;--------------------------------------------------------------------------------------------------
 case_13:                                                ; handler %s
             mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = string argument from stack
+            inc  r9                                     ; r9++ <=> next argument
 
             push rdx                                    ; save rdx in stack
 
@@ -634,15 +640,16 @@ JumpTable:
 
 OfsStrtArgInStk: equ 24                                 ;offset of start arguments in stack
 
-;Format:     db "%o\n%d %s %x %d%%%c%b\n%d %s %x %d%%%c%b", 0x0a
+Format:     db "%o\n%d %s %x %d%%%c%b\n%d %s %x %d%%%c%b", 0x0a
 
-Format:     db "%o\n%d", 0x0a ; %s %x %d%%%c%b\n%d %s %x %d%%%c%b"
+;Format:     db "%o\n%d  %s", 0x0a ; %x %d%%%c%b\n%d %s %x %d%%%c%b"
 
+;Format:     db "%o %s", 0x0a
 ;Format:     db "%d", 0x0a
 
 FormatLen:  equ $ - Format
 
-Love:       db "love"
+Love:       db "love", 0
 
 Buffer:     TIMES 256 db 0
 BufferLen:  equ 256
