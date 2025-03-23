@@ -1,11 +1,11 @@
 #include <stdio.h>
 
-extern "C" void _MyPrintf (const char* format, ...);
+extern "C" void _MyFastCallPrintf (const char* format, ...);
 
 int main ()
 {
 
-    _MyPrintf ("ABCD");
+    _MyFastCallPrintf ("ABCD %d\n", -1);
 
     return 0;
 }

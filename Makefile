@@ -12,7 +12,7 @@ LINUXFLAGS = -D _DEBUG -ggdb3 -std=c++17 -O0 -Wall -Wextra -Weffc++ \
 	-fstrict-overflow -flto-odr-type-merging -fno-omit-frame-pointer -Wlarger-than=580192 -Wstack-usage=8192 -no-pie -Werror=vla \
 	-fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,$\
 	nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,$\
-	signed-integer-overflow,undefined,unreachable,vla-bound,vptr
+	signed-integer-overflow,undefined,unreachable,vla-bound,vptr -m64
 
 NASMFLAGS = -w+orphan-labels
 

@@ -9,9 +9,11 @@
 
 section     .text
 
-global      _my_start                                      ; predefine entry point name for linker
+global      _my_start                                   ; predefine entry point name for linker
 
 global      _MyPrintf                                   ; predefine func for linker
+
+global      _MyFastCallPrintf                           ; predefine func fot Linker
 
 ;extern printf
 extern strlen
@@ -92,6 +94,49 @@ _my_start:
 ;--------------------------------------------------------------------------------------------------
 
 ;--------------------------------------------------------------------------------------------------
+; _MyFastCallPrintf my function printf with calling convention fastcall
+; Entry:    RDI = Format string
+;           RSI = arg1
+;           RDX = arg2
+;           RCX = arg3
+;           R8  = arg4
+;           R9  = arg5
+;         --STACK (FastCall)-----------------------------
+;         | ...                                         |
+;         | ...                                         |
+;         | ...                       ...               |
+;         | arg7                      <-- rsp + 16      |
+;         | arg6                      <-- rsp + 8       |
+;         | return address to main    <-- rsp           |
+;         -----------------------------------------------
+; Exit:   --STACK (for cdecl)----------------------------
+;         | ...                                         |
+;         | ...                                         |
+;         | ...                                         |
+;         | arg2                      ...               |
+;         | arg1                      <-- rsp + 16      |
+;         | Format string             <-- rsp + 8       |
+;         | return address to main    <-- rsp           |
+;         -----------------------------------------------
+; Destroy:  = Destroy _MyPrintf
+;--------------------------------------------------------------------------------------------------
+_MyFastCallPrintf:
+            pop  rax                                    ; rax = return address to main
+
+            push r9                                     ;------------------------------------------
+            push r8                                     ; Push                                    |
+            push rcx                                    ;    FastCall                             |
+            push rdx                                    ;           Parameters                    |
+            push rsi                                    ;                    to Stack             |
+            push rdi                                    ;------------------------------------------
+
+            push rax                                    ; Push "return address to main" to stack
+
+            jmp _MyPrintf                               ; call cdecl version of my printf and
+                                                        ; return to main from it
+;-----------End-__MyFastCallPrintf-----------------------------------------------------------------
+
+;--------------------------------------------------------------------------------------------------
 ; _MyPrintf my function printf version 11.1, write to console string
 ;               with some arguments that pinned by '%'
 ; Entry:  --STACK (cdecl)--------------------------------
@@ -104,7 +149,7 @@ _my_start:
 ;         | return address to main    <-- rsp           |
 ;         -----------------------------------------------
 ; Exit:     None
-; Destroy:  rax, rbx, rdx, rdi, rsi, rcx
+; Destroy:  rax, rdx, rdi, rsi, rcx, r9, r8, r10, r11
 ;--------------------------------------------------------------------------------------------------
 _MyPrintf:
 
@@ -113,7 +158,7 @@ _MyPrintf:
             push r12                                    ;       -Save-             |
             push r13                                    ;            -Registers    |
             push r14                                    ;                          |
-            ;push r15                                   ; r15 don't use in program |
+            push r15                                    ;                          |
                                                         ;---------------------------
 
 ;         --STACK (cdecl)--------------------------------
@@ -121,20 +166,17 @@ _MyPrintf:
 ;         | ...                                         |
 ;         | ...                                         |
 ;         | arg2                      ...               |
-;         | arg1                      <-- rsp + 56      |
-;         | Format string             <-- rsp + 48      |
-;         | return address to main    <-- rsp + 40      |
-;         | rbx                       <-- rsp + 32      |
-;         | rbp                       <-- rsp + 24      |
-;         | r12                       <-- rsp + 16      |
-;         | r13                       <-- rsp + 8       |
-;         | r14                       <-- rsp           |
+;         | arg1                      <-- rsp + 64      |
+;         | Format string             <-- rsp + 56      |
+;         | return address to main    <-- rsp + 48      |
+;         | rbx                       <-- rsp + 40      |
+;         | rbp                       <-- rsp + 32      |
+;         | r12                       <-- rsp + 24      |
+;         | r13                       <-- rsp + 16      |
+;         | r14                       <-- rsp + 8       |
+;         | r15                       <-- rsp           |
 ;         -----------------------------------------------
 
-            xor  rcx, rcx                               ; rcx = 0, rcx = counter symbols
-                                                        ;   that was read from format string
-            xor  rdx, rdx                               ; rdx = 0, rdx = counter symbols
-                                                        ;   that was write to buffer of printf
             xor  r9,  r9                                ; r9  = 0, r9  = counter arguments
 
             xor  r8,  r8                                ; r8 = will be format string from stack
@@ -143,22 +185,21 @@ _MyPrintf:
 
             mov  r8, [rsp + OfsFrmtStrng]               ; r8 = format string from stack
 
+            mov  rdi, r8                                ; rdi = r8
+            call strlen                                 ; rax = len of string
+
+            mov  r15, rax                               ; r15 = len of string
+
+            xor  rcx, rcx                               ; rcx = 0, rcx = counter symbols
+                                                        ;   that was read from format string
+            xor  rdx, rdx                               ; rdx = 0, rdx = counter symbols
+                                                        ;   that was write to buffer of printf
 RdFrmtStrng:
 
             xor  rbx, rbx                               ; rbx = 0, register for symbols from format
 
             mov  bl, [r8 + rcx]                         ; rbx = symbol from format string
             inc  rcx                                    ; rcx++
-
-;             cmp  bl, 0x5c                               ; if (rbx != '\') {
-;             jne  NotBackslash                           ;     goto NotBackslash }
-;
-;             mov  bl, [r8 + rcx]                         ; rbx = symbol after '\'
-;             inc  rcx                                    ; rcx++ <=> rcx = new symbol in format str
-;
-;             cmp
-;
-;NotBackslash:
 
 ;-----------Check-specifier-or-not-----------------------------------------------------------------
 
@@ -182,8 +223,8 @@ SpecifierIsProccessed:
 
 ;-----------Check-condition-of-end-reading-format-string-------------------------------------------
 
-            cmp  rcx, FormatLen                         ; if (rcx == FormatLen) {
-            je   EndRdFrmtStrng                         ;   goto EndRdFrmtStrng }
+            cmp  rcx, r15                               ; if (rcx >= len format string) {
+            jnb  EndRdFrmtStrng                         ;   goto EndRdFrmtStrng }
 
 ;-----------End-check------------------------------------------------------------------------------
 
@@ -217,13 +258,20 @@ EndRdFrmtStrng:
             call WriteBuf                               ; func to write symbols from buffer
                                                         ;   to console and clear buffer
 
-            ;pop  r15                                   ;---------------------------
+            pop  r15                                    ;---------------------------
             pop  r14                                    ; Callee-                  |
             pop  r13                                    ;       -Save-             |
             pop  r12                                    ;            -Registers    |
-            pop  rbp                                    ; r15 don't use in program |
+            pop  rbp                                    ;                          |
             pop  rbx                                    ;---------------------------
-            ret
+
+            pop  rax                                    ; rax = return address to main
+
+            mov  rsp, rbp                               ; rsp = old value of rsp
+
+            push rax                                    ; head of stack - return address to main
+
+            ret                                         ; return
 
 ;--------------------------------------------------------------------------------------------------
 ; ProcessSpecifier function to check and process the specifier
@@ -236,19 +284,20 @@ EndRdFrmtStrng:
 ;         | ...                                         |
 ;         | ...                                         |
 ;         | arg2                      ...               |
-;         | arg1                      <-- rsp + 64      |
-;         | Format string             <-- rsp + 56      |
-;         | return address to main    <-- rsp + 48      |
-;         | rbx                       <-- rsp + 40      |
-;         | rbp                       <-- rsp + 32      |
-;         | r12                       <-- rsp + 24      |
-;         | r13                       <-- rsp + 16      |
-;         | r14                       <-- rsp + 8       |
+;         | arg1                      <-- rsp + 72      |
+;         | Format string             <-- rsp + 64      |
+;         | return address to main    <-- rsp + 56      |
+;         | rbx                       <-- rsp + 48      |
+;         | rbp                       <-- rsp + 40      |
+;         | r12                       <-- rsp + 32      |
+;         | r13                       <-- rsp + 24      |
+;         | r14                       <-- rsp + 16      |
+;         | r15                       <-- rsp + 8       |
 ;         | return address to _MyPrintf <-- rsp         |
 ;         -----------------------------------------------
 ;           OfsStrtArgInStack = 24
 ; Exit:     rdx = index of next free cell in buffer (changed)
-; Destroy:  rbx, rsi, rax, rdi, r9, r10, r11, r12, rdx
+; Destroy:  rbx, rsi, rax, rdi, r9, r10, r11, r12, rdx, r13, r14
 ;--------------------------------------------------------------------------------------------------
 ; need to process %(c,   s,   d,   x,   o,   b) and %%
 ; HEX               63h  73h  64h  78h  6Fh  62h
@@ -688,8 +737,8 @@ JumpTable:
             dd case_18                                  ; case 18 (%x)
             dd case_def                                 ; case    default
 
-OfsFrmtStrng:    equ 48
-OfsStrtArgInStk: equ 64                                 ;offset of start arguments in stack
+OfsFrmtStrng:    equ 56
+OfsStrtArgInStk: equ 72                                 ;offset of start arguments in stack
 
 Format:     db "%o\n%d %s %x %d%%%c%b\n%d %s %x %d%%%c%b", 0x0a
 
