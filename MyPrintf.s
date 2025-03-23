@@ -267,8 +267,9 @@ EndRdFrmtStrng:
 
             pop  rax                                    ; rax = return address to main
 
-            mov  rsp, rbp                               ; rsp = old value of rsp
-
+            add  rsp, 6 * 8                             ; rsp = old value of rsp (without 6
+                                                        ; values that was pushed in
+                                                        ; _MyFastCallPrintf
             push rax                                    ; head of stack - return address to main
 
             ret                                         ; return
@@ -336,10 +337,10 @@ case_2:                                                 ; handler %b
             mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
             inc  r9                                     ; r9++ <=> next argument
 
-            cmp  rbx, 0                                 ; if (rax > 0) {
+            cmp  ebx, 0                                 ; if (rax > 0) {
             jg   BinPositiveParam                       ;     goto BinPositiveParam }
 
-            neg  rbx                                    ; rbx = -rbx, find positive value of rbx
+            neg  ebx                                    ; rbx = -rbx, find positive value of rbx
 
             mov  rax, '-'                               ; rax = '-'
             mov  [Buffer + rdx], al                     ; Buffer[rdx] = al
@@ -387,10 +388,10 @@ case_4:                                                 ; handler %d
             mov  rax, [rsp + OfsStrtArgInStk + 8 * r9]  ; rax = some argument from stack
             inc  r9                                     ; r9++ <=> next argument
 
-            cmp  rax, 0                                 ; if (rax > 0) {
+            cmp  eax, 0                                 ; if (rax > 0) {
             jg   DexPositiveParam                       ;     goto DexPositiveParam }
 
-            neg  rax                                    ; rax = -rax, find positive value of rax
+            neg  eax                                    ; rax = -rax, find positive value of rax
 
             mov  rbx, '-'
             mov  [Buffer + rdx], bl                     ; Buffer[rdx] = '-'
@@ -445,10 +446,10 @@ case_F:                                                 ; handler %o
             mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
             inc  r9                                     ; r9++ <=> next argument
 
-            cmp  rbx, 0                                 ; if (rax > 0) {
+            cmp  ebx, 0                                 ; if (rax > 0) {
             jg   OctPositiveParam                       ;     goto OctPositiveParam }
 
-            neg  rbx                                    ; rbx = -rbx, find positive value of rbx
+            neg  ebx                                    ; rbx = -rbx, find positive value of rbx
 
             mov  rax, '-'                               ; rax = '-'
             mov  [Buffer + rdx], al                     ; Buffer[rdx] = al
@@ -512,6 +513,23 @@ NewDigitsInOctal:
 ;-----------Hex-handler----------------------------------------------------------------------------
 
 case_18:                                                ; handler %x
+
+            mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
+            inc  r9                                     ; r9++ <=> next argument
+
+            cmp  ebx, 0                                 ; if (rax > 0) {
+            jg   HexPositiveParam                       ;     goto HexPositiveParam }
+
+            neg  ebx                                    ; rbx = -rbx, find positive value of rbx
+
+            mov  rax, '-'                               ; rax = '-'
+            mov  [Buffer + rdx], al                     ; Buffer[rdx] = al
+            inc  rdx                                    ; rdx++
+
+HexPositiveParam:
+
+            mov  r13, rbx                               ; r13 = save value of rbx
+
             mov  rbx, '0'                               ; rbx = '0'
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
             inc  rdx                                    ; rdx++
@@ -519,19 +537,7 @@ case_18:                                                ; handler %x
             mov  [Buffer + rdx], rbx                    ; Buffer[rdx] = rbx
             inc  rdx                                    ; rdx++
 
-            mov  rbx, [rsp + OfsStrtArgInStk + 8 * r9]  ; rbx = some argument from stack
-            inc  r9                                     ; r9++ <=> next argument
-
-            cmp  rbx, 0                                 ; if (rax > 0) {
-            jg   HexPositiveParam                       ;     goto HexPositiveParam }
-
-            neg  rbx                                    ; rbx = -rbx, find positive value of rbx
-
-            mov  rax, '-'                               ; rax = '-'
-            mov  [Buffer + rdx], al                     ; Buffer[rdx] = al
-            inc  rdx                                    ; rdx++
-
-HexPositiveParam:
+            mov  rbx, r13                               ; rbx = saved value of rbx
 
             push rcx                                    ; save rcx in stack
 
@@ -598,10 +604,12 @@ case_13:                                                ; handler %s
             inc  r9                                     ; r9++ <=> next argument
 
             push rdx                                    ; save rdx in stack
+            push rcx                                    ; save rcx in stack
 
             mov  rdi, rbx                               ; rdi = rbx
             call strlen                                 ; rax = len of string
 
+            pop  rcx                                    ; back rcx from stack
             pop  rdx                                    ; back rdx from stack
 
 ;-----------some-variants-of-output-this-string----------------------------------------------------
