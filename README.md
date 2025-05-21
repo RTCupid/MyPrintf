@@ -6,7 +6,7 @@
 - [3. Example of calling my printf from C program](#example-of-calling-my-printf-from-с-program)
 
 ## Introduction
-My function printf. Project is in assembly language NASM. It based on two calling conventions: cdecl and fastcall. The program include my cdecl version of printf that handles specifiers: %c, %s, %d, %x, %o, %b. Also it have trampoline for transition from fastcall version to cdecl version of my printf. The selection of the code that will process the specifier is made using the Jump Table.
+Project - my function printf, is in assembly language NASM. It based on two calling conventions: cdecl and fastcall. The program include my cdecl version of printf that handles specifiers: %c, %s, %d, %x, %o, %b. Also it have trampoline for transition from fastcall version to cdecl version of my printf. The selection of the code that will process the specifier is made using the Jump Table.
 
 ## Supporting fastcall and cdecl calling conventions
 My function can be called from C program. For support fastcall calling convention I made trampoline to cdecl version. My version of trampoline you can see in block of code.
